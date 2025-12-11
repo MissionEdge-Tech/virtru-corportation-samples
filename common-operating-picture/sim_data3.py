@@ -5,6 +5,7 @@ import psycopg2
 import httpx
 from shapely.geometry import Point
 import random
+import math
 
 # Run attached requirements.txt to install dependencies.
 # pip install -r requirements.txt
@@ -31,7 +32,8 @@ BASE_URL = "https://opensky-network.org/api/states/all"
 
 # Script parameters
 NUM_ENTITIES = 50
-UPDATE_INTERVAL_SECONDS = 1
+# UPDATED: 5 updates per second for smoother animation
+UPDATE_INTERVAL_SECONDS = 0.2  
 
 # Bounding box to limit querying for credit savings
 # Format: lamin, lomin, lamax, lomax
@@ -48,84 +50,161 @@ UUID_TO_FLIGHT = {}
 
 FAKE_FLIGHT_POSITIONS = {}
 
+# --- Navigation Math Helpers ---
+
+def calculate_initial_compass_bearing(pointA, pointB):
+    """
+    Calculates the bearing between two points.
+    """
+    if (type(pointA) != tuple) or (type(pointB) != tuple):
+        raise TypeError("Only tuples are supported as arguments")
+
+    lat1 = math.radians(pointA[0])
+    lat2 = math.radians(pointB[0])
+    diffLong = math.radians(pointB[1] - pointA[1])
+
+    x = math.sin(diffLong) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(diffLong))
+
+    initial_bearing = math.atan2(x, y)
+    initial_bearing = math.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+    return compass_bearing
+
+def get_next_point(lat, lon, bearing, distance_km):
+    """
+    Moves a point (lat/lon) a certain distance (km) along a bearing.
+    """
+    R = 6378.1 # Radius of the Earth in km
+    
+    brng = math.radians(bearing)
+    lat1 = math.radians(lat)
+    lon1 = math.radians(lon)
+
+    lat2 = math.asin( math.sin(lat1)*math.cos(distance_km/R) +
+                      math.cos(lat1)*math.sin(distance_km/R)*math.cos(brng))
+
+    lon2 = lon1 + math.atan2(math.sin(brng)*math.sin(distance_km/R)*math.cos(lat1),
+                             math.cos(distance_km/R)-math.sin(lat1)*math.sin(lat2))
+
+    return (math.degrees(lat2), math.degrees(lon2))
+
+def get_distance_km(lat1, lon1, lat2, lon2):
+    """
+    Haversine distance approximation to check if we reached the target.
+    """
+    R = 6371  # km
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + \
+        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
+        math.sin(dLon / 2) * math.sin(dLon / 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+# --- Simulation Logic ---
+
 async def fake_initialize_associations(uuids):
     """
-    Fakes the initial API call by assigning UUIDs to fake ICAO24s
-    and giving them an initial position within the bounding box.
+    Initializes planes with a Start Position, a Destination, and High Speed.
     """
     if not uuids:
         print("No UUIDs to associate. Exiting initialization.")
         return
 
-    # Define bounds for random initial position
     lamin, lomin = BOUNDING_BOX['lamin'], BOUNDING_BOX['lomin']
     lamax, lomax = BOUNDING_BOX['lamax'], BOUNDING_BOX['lomax']
 
-    # Create the association and initial positions
     for i, uuid_obj in enumerate(uuids):
-        # Create a deterministic fake ICAO24 address
         icao24 = f"FAKE{i:03d}"
+        
+        # 1. Start Position
+        start_lat = random.uniform(lamin, lamax)
+        start_lon = random.uniform(lomin, lomax)
+        
+        # 2. Target Destination
+        target_lat = random.uniform(lamin, lamax)
+        target_lon = random.uniform(lomin, lomax)
 
-        # Pick a random starting point within the defined box
-        initial_lat = random.uniform(lamin, lamax)
-        initial_lon = random.uniform(lomin, lomax)
+        # 3. Speed (km per tick)
+        # UPDATED: Multiplied by 80 to account for 0.2s tick rate and "fast" visual movement.
+        speed = random.uniform(2.0, 5.0) * 20
 
-        # Store association and position
+        # 4. Initial Heading (Random)
+        heading = random.uniform(0, 360)
+
         UUID_TO_FLIGHT[uuid_obj] = icao24
         FAKE_FLIGHT_POSITIONS[icao24] = {
-            "latitude": initial_lat,
-            "longitude": initial_lon,
-            # Add a random direction/speed for the update loop
-            "lat_change": random.uniform(-0.5, 0.5),
-            "lon_change": random.uniform(-0.5, 0.5)
+            "lat": start_lat,
+            "lon": start_lon,
+            "heading": heading,
+            "speed": speed,
+            "target_lat": target_lat,
+            "target_lon": target_lon
         }
 
     print(f"Successfully initialized {len(UUID_TO_FLIGHT)} fake flight associations.")
 
 async def fake_update_data(conn_params):
     """
-    Fakes the API update call by simulating small movements for all tracked flights.
+    Updates plane positions using smooth turning logic towards destinations.
     """
     if not UUID_TO_FLIGHT:
         print("No UUIDs are associated with flights.")
         return
 
     updates = []
+    
+    # Physics Constants
+    # UPDATED: Increased turn rate (15 deg) so they don't circle forever at high speeds
+    MAX_TURN_RATE = 5.0 
+    # UPDATED: Increased threshold (150km) so they hit the target easier at Mach 10
+    ARRIVAL_THRESHOLD_KM = 80.0 
+    
+    lamin, lomin = BOUNDING_BOX['lamin'], BOUNDING_BOX['lomin']
+    lamax, lomax = BOUNDING_BOX['lamax'], BOUNDING_BOX['lomax']
 
-    # Simulate new positions for all tracked flights
     for uuid_obj, icao24 in UUID_TO_FLIGHT.items():
-        current_pos = FAKE_FLIGHT_POSITIONS.get(icao24)
-
-        if not current_pos:
+        plane = FAKE_FLIGHT_POSITIONS.get(icao24)
+        if not plane:
             continue
 
-        # Simulate movement
-        new_lat = current_pos["latitude"] + current_pos["lat_change"]
-        new_lon = current_pos["longitude"] + current_pos["lon_change"]
+        # --- 1. Check Arrival ---
+        dist = get_distance_km(plane["lat"], plane["lon"], plane["target_lat"], plane["target_lon"])
+        
+        if dist < ARRIVAL_THRESHOLD_KM:
+            # Re-roll destination
+            plane["target_lat"] = random.uniform(lamin, lamax)
+            plane["target_lon"] = random.uniform(lomin, lomax)
+        
+        # --- 2. Calculate Steering ---
+        target_bearing = calculate_initial_compass_bearing(
+            (plane["lat"], plane["lon"]), 
+            (plane["target_lat"], plane["target_lon"])
+        )
 
-        # Stay within the bounding box
-        lamin, lomin = BOUNDING_BOX['lamin'], BOUNDING_BOX['lomin']
-        lamax, lomax = BOUNDING_BOX['lamax'], BOUNDING_BOX['lomax']
+        # Calculate smallest turn angle
+        diff = target_bearing - plane["heading"]
+        if diff > 180: diff -= 360
+        if diff < -180: diff += 360
 
-        if not lamin < new_lat < lamax:
-            current_pos["lat_change"] *= -1
-            new_lat = current_pos["latitude"]
+        # Limit the turn (smooth curve)
+        turn = max(-MAX_TURN_RATE, min(MAX_TURN_RATE, diff))
+        plane["heading"] = (plane["heading"] + turn) % 360
 
-        if not lomin < new_lon < lomax:
-            current_pos["lon_change"] *= -1
-            new_lon = current_pos["longitude"]
+        # --- 3. Move ---
+        new_lat, new_lon = get_next_point(plane["lat"], plane["lon"], plane["heading"], plane["speed"])
 
-        # Update the stored position
-        current_pos["latitude"] = new_lat
-        current_pos["longitude"] = new_lon
+        # Update Memory
+        plane["lat"] = new_lat
+        plane["lon"] = new_lon
 
-        # Prepare data for DB update
+        # Prepare DB Update
         geos_wkb = lat_lon_to_wkb(new_lat, new_lon)
         updates.append((geos_wkb, uuid_obj))
 
-    # Perform the bulk update on the database
+    # --- 4. Commit to DB ---
     if not updates:
-        print("No valid position updates to commit to the database.")
         return
 
     conn = None
@@ -148,7 +227,7 @@ async def fake_update_data(conn_params):
 
         cursor.execute(update_query, (wkb_list, uuid_list))
         conn.commit()
-        print(f"Successfully updated {cursor.rowcount} records.")
+        # print(f"Updated {cursor.rowcount} records.")
 
     except Exception as e:
         print(f"Database update failed: {e}")
@@ -156,7 +235,6 @@ async def fake_update_data(conn_params):
             conn.rollback()
     finally:
         if conn:
-
             conn.close()
 
 # --- Helper Functions ---
@@ -218,7 +296,6 @@ async def main():
         uuids_to_track = get_db_uuids(conn_params, NUM_ENTITIES)
 
         # Makes associations
-        #await initialize_flight_associations(client, uuids_to_track)
         await fake_initialize_associations(uuids_to_track)
 
         if not UUID_TO_FLIGHT:
@@ -230,19 +307,19 @@ async def main():
         try:
             while True:
                 start_time = time.time()
-                print(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] Fetching and updating data...")
+                # print(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] Fetching and updating data...")
 
-                #await update_flight_data(client, conn_params)
                 await fake_update_data(conn_params)
 
                 # Wait
                 elapsed = time.time() - start_time
                 wait_time = max(0, UPDATE_INTERVAL_SECONDS - elapsed)
-                print(f"Cycle completed in {elapsed:.2f}s. Waiting for {wait_time:.2f}s...")
+                
+                # print(f"Cycle completed in {elapsed:.2f}s. Waiting for {wait_time:.2f}s...")
                 time.sleep(wait_time)
 
         except KeyboardInterrupt:
-            print("\nScript Terminiated. Bye Byes!")
+            print("\nScript Terminated. Bye Bye!")
         except Exception as e:
             print(f"\nFatal error: {e}")
 
