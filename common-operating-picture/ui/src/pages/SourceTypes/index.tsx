@@ -136,9 +136,9 @@ export function SourceTypes() {
   // Refresh vehicle data every so often
   useEffect(() => {
 
-    if (vehicleData.length === 0) {
-        return;
-    }
+    // if (vehicleData.length === 0) {
+    //     return;
+    // }
 
     const REFRESH_INTERVAL_MS = 1000;
 
