@@ -34,11 +34,10 @@ interface VehicleProps {
     attrNeedToKnow?: string[];
     attrRelTo?: string[];
   };
-      onClick: () => void;  // New onClick handler prop
+  onClick: () => void;
 }
 
 interface RotatableIconProps {
-  rotationAngle: number;
   color: string;
   iconSize: L.PointExpression;
   iconAnchor: L.PointExpression;
@@ -63,12 +62,12 @@ function calculateBearing(start: Coordinate, end: Coordinate): number {
   return (bearing + 360) % 360;
 }
 
-const RotatableIcon = ({ rotationAngle, color, iconSize, iconAnchor }: RotatableIconProps) => {
+const RotatableIcon = ({ color, iconSize, iconAnchor }: RotatableIconProps) => {
   const [width, height] = Array.isArray(iconSize) ? iconSize : ([20, 20] as [number, number]);
 
   // SVG plane icon that can be colored
   const planeSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${width}" height="${height}" style="transform: rotate(${rotationAngle}deg);">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${width}" height="${height}">
       <path fill="${color}" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
     </svg>
   `;
@@ -81,9 +80,9 @@ const RotatableIcon = ({ rotationAngle, color, iconSize, iconAnchor }: Rotatable
         className: "plane-icon",
         iconSize: iconSize,
         iconAnchor: iconAnchor,
-        html: `<img src="data:image/svg+xml,${encodedSvg}" style="width: ${width}px; height: ${height}px; display: block;" />`,
+        html: `<img class="vehicle-icon-img" src="data:image/svg+xml,${encodedSvg}" style="width: ${width}px; height: ${height}px; display: block; transition: transform 0.2s linear;" />`,
       }),
-    [rotationAngle, color, iconSize, iconAnchor, encodedSvg]
+    [color, iconSize, iconAnchor, encodedSvg]
   );
 };
 
@@ -174,7 +173,7 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick }: 
   const [isLoading, setIsLoading] = useState(false);
   const [decryptedData, setDecryptedData] = useState<any>(null); // State for decrypted results
   const [currentPos, setCurrentPos] = useState(Position);
-  const [rotationAngle, setRotationAngle] = useState(0);
+  const rotationRef = useRef(0);
   const markerRef = useRef<L.Marker>(null);
 
   // Combine static data with decrypted data (decrypted takes priority)
@@ -184,13 +183,28 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick }: 
   }), [data, decryptedData]);
 
   useEffect(() => {
-    // ... (Your existing animation logic remains identical) ...
+    // Re-apply rotation if the icon was re-created (e.g. color change) but bearing is same
+    const markerEl = markerRef.current?.getElement();
+    const iconImg = markerEl?.querySelector('.vehicle-icon-img') as HTMLElement;
+    if (iconImg) {
+      iconImg.style.transform = `rotate(${rotationRef.current}deg)`;
+    }
+  });
+
+  useEffect(() => {
     const startPos = currentPos;
     const targetPos = Position;
     const duration = 3000;
 
     if (startPos.lat !== targetPos.lat || startPos.lng !== targetPos.lng) {
-      setRotationAngle(calculateBearing(startPos, targetPos));
+      const newBearing = calculateBearing(startPos, targetPos);
+      rotationRef.current = newBearing;
+      
+      const markerEl = markerRef.current?.getElement();
+      const iconImg = markerEl?.querySelector('.vehicle-icon-img') as HTMLElement;
+      if (iconImg) {
+        iconImg.style.transform = `rotate(${newBearing}deg)`;
+      }
     }
 
     let lngDelta = targetPos.lng - startPos.lng;
@@ -241,7 +255,6 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick }: 
   };
 
   const icon = RotatableIcon({
-    rotationAngle,
     color: getClassificationColor(displayData?.attrClassification),
     iconSize: ICON_PROPS.size,
     iconAnchor: ICON_PROPS.anchor,
