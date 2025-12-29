@@ -7,6 +7,8 @@ import { formatDateTime } from '@/utils/format';
 import { mapColors, mapIcons, mapStringToColor, mapStringToSvgPath } from '@/pages/SourceTypes/helpers/markers';
 import { propertyOf } from 'lodash';
 import ms from 'milsymbol';
+import { ObjectBanner } from '@/components/ObjectBanner';
+import { extractValues } from '@/contexts/BannerContext';
 
 type Props = {
   tdfObjects: TdfObjectResponse[];
@@ -43,11 +45,11 @@ export function MarkerLayer({ tdfObjects = [], isCluster = false, layerName = 'u
       : value;
 
     return (
-      <Stack direction="column" gap={0} spacing={0} mb={2}>
-        <Typography variant="h6" sx={{ wordBreak: 'break-all' }}>
+      <Stack direction="column" gap={0} spacing={0} mb={1} sx={{ minWidth: '350px' }}>
+        <Typography variant="h6" sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
           {getFieldTitle(displayFields?.header)}: {displayValue}
         </Typography>
-        <Typography variant="body1" sx={{ color: '#000' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {formattedDateTime}
         </Typography>
       </Stack>
@@ -205,11 +207,35 @@ export function MarkerLayer({ tdfObjects = [], isCluster = false, layerName = 'u
       const coordinates = JSON.parse(tdfObject.tdfObject.geo).coordinates;
       const dynamicTdfIcon = tdfObjectToDynamicIcon(tdfObject);
 
+      const data = tdfObject.decryptedData || {};
+
+      const objClass = extractValues(data.attrClassification || [])
+        .split(', ')
+        .filter(Boolean);
+
+      const objNTK = extractValues(data.attrNeedtoknow || data.attrNeedToKnow || [])
+        .split(', ')
+        .filter(Boolean);
+
+      const objRel = extractValues(data.attrRelto || data.attrRelTo || [])
+        .split(', ')
+        .filter(Boolean);
+
       return (
         <Marker position={{ lat: coordinates[1], lng: coordinates[0] }} key={tdfObject.tdfObject.id} icon={dynamicTdfIcon}>
-          <Popup>
-            {renderHeader(tdfObject)}
-            {renderDetails(tdfObject)}
+          <Popup minWidth={380} maxWidth={500}>
+            <Box sx={{ p: 1, display: 'block', width: '100%', overflow: 'hidden' }}>
+              <ObjectBanner
+                objClassification={objClass.length > 0 ? objClass : ['UNCLASSIFIED']}
+                objNTK={objNTK}
+                objRel={objRel}
+                notes={[]}
+              />
+              {renderHeader(tdfObject)}
+              <Box sx={{ mt: 1 }}>
+              {renderDetails(tdfObject)}
+              </Box>
+            </Box>
           </Popup>
         </Marker>
       );

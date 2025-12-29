@@ -1,17 +1,17 @@
-import { useEffect, useState, useContext, useCallback } from 'react';
+import { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LayersControl, MapContainer, TileLayer } from 'react-leaflet';
 import { LatLng, Map } from 'leaflet';
-import { Box, Button, Grid } from '@mui/material';
+import { Box, Button, Grid, IconButton, Typography } from '@mui/material';
 import { AddCircle } from '@mui/icons-material';
-import { useRpcClient } from '@/hooks/useRpcClient';
+import { TdfObjectResponse, useRpcClient } from '@/hooks/useRpcClient';
 import { PageTitle } from '@/components/PageTitle';
 import { SourceTypeProvider } from './SourceTypeProvider';
 import { CreateDialog } from './CreateDialog';
 import { SourceTypeSelector } from './SourceTypeSelector';
 import { SearchFilter } from './SearchFilter';
 import { SearchResults } from './SearchResults';
-import { SrcType } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
+import { SrcType, TdfObject} from '@/proto/tdf_object/v1/tdf_object_pb.ts';
 import { config } from '@/config';
 import { TdfObjectsMapLayer } from '@/components/Map/TdfObjectsMapLayer';
 import { BannerContext } from '@/contexts/BannerContext';
@@ -19,16 +19,27 @@ import { VehicleLayer } from '@/components/Map/VehicleLayer';
 import { TimestampSelector } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
 import { Timestamp } from '@bufbuild/protobuf';
 import dayjs from 'dayjs';
+import CloseIcon from '@mui/icons-material/Close';
+import { TdfObjectResult } from './TdfObjectResult';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 export interface VehicleDataItem {
-    id: string;
-    pos: { lat: number; lng: number };
-    data? : {
-        attrClassification: string;
-        attrNeedToKnow: string[];
-        attrRelTo: string[];
-        vehicleName: string;
-    }
+  id: string;
+  pos: { lat: number; lng: number };
+  rawObject: TdfObject;
+  data?: {
+    vehicleName?: string | undefined;
+    callsign?: string;
+    origin?: string;
+    destination?: string;
+    speed?: string;
+    altitude?: string;
+    heading?: string;
+    aircraft_type?: string;
+    attrClassification?: string | string[];
+    attrNeedToKnow?: string[];
+    attrRelTo?: string[];
+  };
   }
 
 export function SourceTypes() {
@@ -43,10 +54,32 @@ export function SourceTypes() {
   const { getSrcType } = useRpcClient();
   const [srcType, setSrcType] = useState<SrcType>();
 
+  const { tdfObjects, setTdfObjects, activeEntitlements } = useContext(BannerContext);
+  const { queryTdfObjectsLight } = useRpcClient();
 
-  // New tdfobject handling
-  const { tdfObjects, setTdfObjects } = useContext(BannerContext);
-  const { queryTdfObjects } = useRpcClient();
+  const [vehicleData, setVehicleData] = useState<VehicleDataItem[]>([]);
+  const [vehicleSrcType, setVehicleSrcType] = useState<SrcType>();
+  const vehicleSourceTypeId = "vehicles";
+
+  const [poppedOutVehicle, setPoppedOutVehicle] = useState<TdfObjectResponse | null>(null);
+
+  const { categorizedData } = useEntitlements();
+
+  const filteredVehicleData = useMemo(() => {
+    if (!activeEntitlements || activeEntitlements.size === 0 || activeEntitlements.has("NoAccess")) {
+      return vehicleData;
+    }
+
+    return vehicleData.filter(vehicle => {
+      const classification = vehicle.data?.attrClassification;
+      if (!classification) return true;
+
+      const classStr = Array.isArray(classification) ? classification[0] : classification;
+      if (!classStr) return true;
+
+      return activeEntitlements.has(classStr);
+    });
+  }, [vehicleData, activeEntitlements]);
 
   const fetchSrcType = useCallback(async (id: string) => {
     try {
@@ -89,8 +122,9 @@ export function SourceTypes() {
     map.flyTo({ lat, lng }, map.getZoom());
   }, [map]);
 
-  const [vehicleData, setVehicleData] = useState<VehicleDataItem[]>([]);
-  const vehicleSourceTypeId = "vehicles";
+  const handleVehicleClick = useCallback((vehicle: VehicleDataItem) => {
+  console.log("Selected vehicle:", vehicle);
+  }, []);
 
   const fetchVehicles = useCallback(async (id: string) => {
     try {
@@ -99,34 +133,70 @@ export function SourceTypes() {
       const dayjsStart = dayjs().subtract(24000, 'hour');
       tsRange.greaterOrEqualTo = Timestamp.fromDate(dayjsStart.toDate());
 
-      const response = await queryTdfObjects({
+      const response = await queryTdfObjectsLight({
         srcType: id,
         tsRange: tsRange,
       });
 
       // Transform the TdfObjectResponse into VehicleDataItem[]
       const vehicleData: VehicleDataItem[] = response
-        .filter(o => o.tdfObject.geo) // Only include objects with geo data
+        .filter(o => o.geo) // Only include objects with geo data
         .map(o => {
-          const geoJson = JSON.parse(o.tdfObject.geo);
+          const geoJson = JSON.parse(o.geo);
 
           // GeoJSON Point coordinates are [longitude, latitude]
           const [lng, lat] = geoJson.coordinates;
 
+          let telemetry = {};
+          try {
+            if (o.metadata && o.metadata !== "null") {
+              telemetry = JSON.parse(o.metadata);
+            }
+          } catch (e) {
+            console.error("Metadata parse error", e);
+          }
+
+          let attributes = {};
+          //console.log("Search field:", o.search);
+          try {
+            if (o.search && o.search !== "null") {
+              attributes = JSON.parse(o.search);
+            }
+          } catch (e) {
+              console.error("Search field parse error", e);
+          }
+
           return {
-            id: o.tdfObject.id, // Use the TDF object ID as the marker ID
+            id: o.id, // Use the TDF object ID as the marker ID
             // Convert to { lat: number, lng: number }
             pos: { lat, lng },
-            data: o.decryptedData, // Include decrypted data if needed
+            rawObject: o,
+            data: { ...telemetry, ...attributes },
           };
         });
+
+      //console.log('Vehicle data fetched:', vehicleData);
 
       setVehicleData(vehicleData);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       setVehicleData([]);
     }
-  }, [queryTdfObjects]);
+  }, [queryTdfObjectsLight]);
+
+  useEffect(() => {
+    // Fetch the vehicles schema
+    const getVehicleSchema = async () => {
+      try {
+        const { srcType } = await getSrcType({ srcType: vehicleSourceTypeId });
+        setVehicleSrcType(srcType);
+      } catch (err) {
+        console.error("Failed to fetch vehicle source type schema", err);
+      }
+    };
+
+    getVehicleSchema();
+  }, [getSrcType, fetchVehicles]);
 
   // New useEffect to fetch the data on component mount
   useEffect(() => {
@@ -183,21 +253,46 @@ export function SourceTypes() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={7}>
             <MapContainer style={{ width: '100%', height: '80vh' }} center={[0, 0]} zoom={3} ref={setMap}>
-              <TileLayer url={config.tileServerUrl} />
-                <LayersControl position="topright">
-                      {vehicleData.length > 0 && (
-                    <LayersControl.Overlay name="Planes" checked>
-                      {/* Vehicle Layer */}
-                      <VehicleLayer vehicleData={vehicleData} />
-                    </LayersControl.Overlay>
-                    )}
-                      {/* TDF Object Layer */}
-                      {tdfObjects.length > 0 && (
-                    <LayersControl.Overlay name="TDF Objects" checked>
-                        <TdfObjectsMapLayer tdfObjects={tdfObjects} />
-                    </LayersControl.Overlay>
-                    )}
-                </LayersControl>
+              <LayersControl position="topright">
+                {/* Base Layers */}
+                <LayersControl.BaseLayer checked name="Street">
+                  <TileLayer
+                    url={config.tileServerUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="Satellite">
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution='&copy; <a href="https://www.esri.com/">Esri</a> | Earthstar Geographics'
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="Dark">
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+                  />
+                </LayersControl.BaseLayer>
+
+                {/* Overlay Layers */}
+                {filteredVehicleData.length > 0 && (
+                  <LayersControl.Overlay name="Planes" checked>
+                    {/* Vehicle Layer - key forces re-render when entitlements change */}
+                    <VehicleLayer
+                      key={`vehicles-${activeEntitlements.size}`}
+                      vehicleData={filteredVehicleData}
+                      onMarkerClick={handleVehicleClick}
+                      onPopOut={setPoppedOutVehicle}
+                    />
+                  </LayersControl.Overlay>
+                )}
+                {/* TDF Object Layer */}
+                {tdfObjects.length > 0 && (
+                  <LayersControl.Overlay name="TDF Objects" checked>
+                    <TdfObjectsMapLayer tdfObjects={tdfObjects} />
+                  </LayersControl.Overlay>
+                )}
+              </LayersControl>
             </MapContainer>
           </Grid>
           <Grid item xs={12} md={5}>
@@ -209,6 +304,45 @@ export function SourceTypes() {
           </Grid>
         </Grid>
         <CreateDialog open={dialogOpen} onClose={handleDialogClose} />
+        {poppedOutVehicle && (
+          <Box className="popped-out-window" sx={{
+            position: 'fixed',
+            bottom: 20,
+            right: 20,
+            zIndex: 1000,
+            width: 450,
+            boxShadow: 3,
+            borderRadius: 1,
+            overflow: 'hidden'
+          }}>
+            <Box className="window-header" sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              p: 1,
+              bgcolor: 'primary.main',
+              color: 'white'
+            }}>
+              <Typography variant="subtitle2">Vehicle Details & Notes</Typography>
+              <IconButton size="small" onClick={() => setPoppedOutVehicle(null)} sx={{ color: 'white' }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto', bgcolor: 'background.paper' }}>
+              <SourceTypeProvider srcType={vehicleSrcType}>
+                <TdfObjectResult
+                  key={poppedOutVehicle.tdfObject.id}
+                  tdfObjectResponse={poppedOutVehicle}
+                  categorizedData={categorizedData || {}}
+                  onFlyToClick={handleFlyToClick}
+                  onNotesUpdated={(objectId, notes) => {
+                    console.log(`Notes updated for ${objectId}`, notes);
+                  }}
+                />
+              </SourceTypeProvider>
+            </Box>
+          </Box>
+        )}
       </SourceTypeProvider>
     </>
   );
