@@ -3,6 +3,7 @@ import uuid
 import json
 import random
 import psycopg2
+import argparse
 from io import BytesIO
 from faker import Faker
 from datetime import datetime, timedelta
@@ -10,27 +11,17 @@ from psycopg2.extras import execute_batch
 from otdf_python.sdk_builder import SDKBuilder
 from otdf_python.config import NanoTDFConfig, KASInfo
 
-# Run attached requirements.txt to install dependencies.
-# pip install -r requirements.txt
-
 # --- DB Configs ---
 DB_NAME = "postgres"
 DB_USER = "postgres"
 DB_PASSWORD = "changeme"
 DB_HOST = "localhost"
 DB_PORT = 15432
-NUM_RECORDS = 50 # Number of records to insert
-BATCH_SIZE = 10 # Number of records per batch
+NUM_RECORDS = 50
+BATCH_SIZE = 10
 
 # --- Fixed Data for TdfObjects ---
 FIXED_SRC_TYPE = 'vehicles'
-FIXED_SEARCH_JSONB = json.dumps({
-    "attrRelTo": [],
-    "attrNeedToKnow": [],
-    "attrClassification": "https://demo.com/attr/classification/value/unclassified",
-})
-HEX_STRING_TDF_BLOB = ''
-FIXED_TDF_BLOB_BYTEA = bytes.fromhex(HEX_STRING_TDF_BLOB)
 FIXED_TDF_URI = None
 FIXED_CREATED_BY = 'seed_script'
 
@@ -39,25 +30,14 @@ PLATFORM_ENDPOINT = "https://local-dsp.virtru.com:8080"
 CLIENT_ID = "opentdf"
 CLIENT_SECRET = "secret"
 
-# Attributes
-ATTRIBUTES = [
-    "https://demo.com/attr/classification/value/unclassified"
-]
-
-# --- Vehicle Data Structure ---
-VEHICLE_DATA = {
-    "attrClassification": "https://demo.com/attr/classification/value/unclassified",
-    "attrNeedToKnow": [],
-    "attrRelTo": [],
-    "vehicleName": "UA-747",
-}
-PLAINTEXT_DATA = json.dumps(VEHICLE_DATA)
+CLASSIFICATIONS = ["unclassified", "confidential", "secret", "topsecret"]
 
 # --- DSP Configs ---
-OUTPUT_FILENAME = "encrypted_vehicle.tdf"
-
 CA_CERT_PATH = "./dsp-keys/rootCA.pem"
 ISSUER_ENDPOINT = "https://local-dsp.virtru.com:8443/auth/realms/opentdf"
+
+# --- Delete Statement ---
+DELETE_SQL = "DELETE FROM tdf_objects WHERE src_type = %s"
 
 # --- Insert Statement ---
 INSERT_SQL = """
@@ -67,18 +47,16 @@ INSERT INTO tdf_objects (
     src_type,
     geo,
     search,
+    metadata,
     tdf_blob,
     tdf_uri,
     _created_at,
     _created_by
 )
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
-# Helper functions for tdfblob generation and encryption
-def get_sdk_instance(platform_endpoint: str, client_id: str, client_secret: str, ca_cert_path: str, issuer_endpoint: str):
-    """Initializes and returns the configured TDF SDK instance."""
+def get_sdk_instance(platform_endpoint, client_id, client_secret, ca_cert_path, issuer_endpoint):
     builder = SDKBuilder()
-    print(platform_endpoint)
     builder.set_platform_endpoint(platform_endpoint)
     builder.client_secret(client_id, client_secret)
     builder.cert_paths = ca_cert_path
@@ -89,7 +67,6 @@ def encrypt_data(sdk, plaintext: str , attributes: list[str]) -> bytes:
     """Encrypts a string payload using the TDF SDK."""
     #print(f"Creating TDF configuration with attributes: {attributes}")
     target_kas_url = "https://local-dsp.virtru.com:8080/kas"
-
     # Create the KASInfo object
     kas_info = KASInfo(url=target_kas_url)
 
@@ -110,13 +87,11 @@ def encrypt_data(sdk, plaintext: str , attributes: list[str]) -> bytes:
     )
 
     return output_stream.getvalue()
-
-
 # Helper function to generate WKB for GEO data
 def generate_random_point_wkb():
     """Generates a random GEO in WKB format."""
-    min_lat, max_lat = -90, 90
-    min_lon, max_lon = -180, 180
+    min_lat, max_lat = 25, 45
+    min_lon, max_lon = -85, -65
 
     lat = random.uniform(min_lat, max_lat)
     lon = random.uniform(min_lon, max_lon)
@@ -124,7 +99,7 @@ def generate_random_point_wkb():
     return f'POINT({lon} {lat})'
 
 # --- Make Records ---
-def generate_tdf_records(count, tdf_blob: bytes):
+def generate_tdf_records(count, sdk):
     """Generates a list of tdf_object records."""
     records = []
     fake = Faker()
@@ -132,7 +107,36 @@ def generate_tdf_records(count, tdf_blob: bytes):
     # Start date to be used for random timestamp generation
     start_date = datetime.now() - timedelta(days=30)
 
-    for _ in range(count):
+    for i in range(count):
+        # 1. Rotate Classifications (one of each)
+        cls_type = CLASSIFICATIONS[i % len(CLASSIFICATIONS)]
+        attr_url = f"https://demo.com/attr/classification/value/{cls_type}"
+
+        # 2. Randomize Vehicle Data
+        vehicle_data = {
+            "vehicleName": f"{fake.lexify('??').upper()}-{fake.numerify('###')}",
+            "origin": fake.lexify('???').upper(),      # Changed from airport_iata to lexify
+            "destination": fake.lexify('???').upper(), # Changed from airport_iata to lexify
+            "aircraft_type": random.choice(["Boeing 747", "Airbus A320", "Cessna 172", "F-35", "Global 6000"])
+        }
+
+        # Encrypt with specific classification
+        tdf_blob = encrypt_data(sdk, json.dumps(vehicle_data), [attr_url])
+
+        # Prepare search JSONB to match classification
+        search_jsonb = json.dumps({
+            "attrRelTo": [],
+            "attrNeedToKnow": [],
+            "attrClassification": [attr_url]
+        })
+
+        # Prepare metadata JSONB to have dynamic fields
+        metadata_jsonb = json.dumps({
+            "callsign": fake.bothify('??-####').upper(),
+            "speed": f"{random.randint(0, 900)} km/h",
+            "altitude": f"{random.randint(0, 40000)} m",
+            "heading": str(random.randint(0, 359))
+        })
 
         # Randomized Data Fields
         random_id = str(uuid.uuid4())
@@ -146,7 +150,8 @@ def generate_tdf_records(count, tdf_blob: bytes):
             random_ts,
             FIXED_SRC_TYPE,
             random_geo,
-            FIXED_SEARCH_JSONB,
+            search_jsonb,
+            metadata_jsonb,
             tdf_blob,
             FIXED_TDF_URI,
             random_created_at,
@@ -157,7 +162,7 @@ def generate_tdf_records(count, tdf_blob: bytes):
     return records
 
 # --- Insert Logic ---
-def insert_seed_data(tdf_blob: bytes):
+def insert_seed_data(tdf_blob: bytes, should_delete: bool):
     conn = None
     records = generate_tdf_records(NUM_RECORDS, tdf_blob)
 
@@ -173,6 +178,12 @@ def insert_seed_data(tdf_blob: bytes):
             port=DB_PORT
         )
         cursor = conn.cursor()
+
+        # --- Conditional Delete logic based on flag ---
+        if should_delete:
+            print(f"Flag --delete detected. Cleaning up records for src_type: {FIXED_SRC_TYPE}")
+            cursor.execute(DELETE_SQL, (FIXED_SRC_TYPE,))
+            print(f"Successfully deleted {cursor.rowcount} records.")
 
         # Batch Chunks Insert
         execute_batch(
@@ -201,28 +212,18 @@ def insert_seed_data(tdf_blob: bytes):
             conn.close()
 
 if __name__ == "__main__":
-    encrypted_result = None
+    # --- Argparse setup ---
+    parser = argparse.ArgumentParser(description="Seed script for TDF objects.")
+    parser.add_argument(
+        "--delete",
+        action="store_true",
+        help="Delete existing records matching the FIXED_SRC_TYPE before inserting new ones."
+    )
+    args = parser.parse_args()
+
     try:
-        # Initialize the SDK (Authentication happens here)
         sdk_instance = get_sdk_instance(PLATFORM_ENDPOINT, CLIENT_ID, CLIENT_SECRET, CA_CERT_PATH, ISSUER_ENDPOINT)
-
-        # --- Encryption ---
-        encrypted_result = encrypt_data(
-            sdk_instance,
-            PLAINTEXT_DATA,
-            ATTRIBUTES,
-        )
-
-
+        # Pass the flag value to the insert function
+        insert_seed_data(sdk_instance, args.delete)
     except Exception as e:
-        print(f"\nAn error occurred: {e}")
-
-    if encrypted_result:
-        #print(f"KAS URL found in TDF: {encrypted_result[0:500].decode('utf-8', 'ignore')}")
-        tdf_blob = encrypted_result
-        # raw_hex_string = encrypted_result.hex()
-        insert_seed_data(tdf_blob)
-        #print(tdf_blob)
-        #print(tdf_blob.hex())
-    else:
-        print("Skipping database insertion because TDF encryption failed.")
+        print(f"An error occurred: {e}")

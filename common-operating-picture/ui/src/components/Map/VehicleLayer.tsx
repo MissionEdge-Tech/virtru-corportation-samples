@@ -1,31 +1,45 @@
-//import React from 'react';
 import { LayerGroup } from 'react-leaflet';
 import { VehicleMarker } from './Vehicle';
+import { TdfObject } from '@/proto/tdf_object/v1/tdf_object_pb';
+import { TdfObjectResponse } from '@/hooks/useRpcClient';
 
 interface VehicleDataItem {
   id: string;
   pos: { lat: number; lng: number };
-  data? : {
-    attrClassification: string;
-    attrNeedToKnow: string[];
-    attrRelTo: string[];
-    vehicleName: string;
+  rawObject: TdfObject;
+  data?: {
+    vehicleName?: string | undefined;
+    callsign?: string;
+    origin?: string;
+    destination?: string;
+    speed?: string;
+    altitude?: string;
+    heading?: string;
+    aircraft_type?: string;
+    attrClassification?: string | string[];
+    attrNeedToKnow?: string[];
+    attrRelTo?: string[];
   };
 }
 
 interface VehicleLayerProps {
   vehicleData: VehicleDataItem[];
+  onMarkerClick: (vehicle: VehicleDataItem) => void;
+  onPopOut: (tdfResponse: TdfObjectResponse) => void;
 }
 
-export function VehicleLayer({ vehicleData }: VehicleLayerProps) {
+export function VehicleLayer({ vehicleData, onMarkerClick, onPopOut }: VehicleLayerProps) {
   return (
     <LayerGroup>
-      {vehicleData.map((data) => (
+      {vehicleData.map((vehicle) => (
         <VehicleMarker
-          key={data.id}
-          markerId={data.id}
-          Position={data.pos}
-          data={data.data}
+          key={vehicle.id}
+          markerId={vehicle.id}
+          Position={vehicle.pos}
+          rawObject={vehicle.rawObject}
+          data={vehicle.data}
+          onClick={() => onMarkerClick(vehicle)}
+          onPopOut={onPopOut}
         />
       ))}
     </LayerGroup>

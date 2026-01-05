@@ -23,12 +23,14 @@ func prepObjForResponse(in db.TdfObject) *tdf_objectv1.TdfObject {
 	}
 
 	return &tdf_objectv1.TdfObject{
-		Id:      in.ID.String(),
-		Ts:      timestamppb.New(in.Ts.Time),
-		SrcType: in.SrcType,
-		Geo:     geo,
-		TdfBlob: in.TdfBlob,
-		TdfUri:  in.TdfUri.String,
+		Id:       in.ID.String(),
+		Ts:       timestamppb.New(in.Ts.Time),
+		SrcType:  in.SrcType,
+		Geo:      geo,
+		Search:   string(in.Search),
+		Metadata: string(in.Metadata),
+		TdfBlob:  in.TdfBlob,
+		TdfUri:   in.TdfUri.String,
 	}
 }
 
@@ -38,6 +40,7 @@ func prepNoteForResponse(in db.TdfNote) *tdf_notev1.TdfNote {
 		Id:       in.ID.String(),
 		Ts:       timestamppb.New(in.Ts.Time),
 		ParentId: in.ParentID.String(),
+		Search:   string(in.Search),
 		TdfBlob:  in.TdfBlob,
 		TdfUri:   in.TdfUri.String,
 	}
@@ -102,11 +105,13 @@ func dbQuerySearchAndGeo(ctx context.Context, query *db.Queries, params db.ListT
 	objs := make([]*tdf_objectv1.TdfObject, 0, len(items))
 	for _, item := range items {
 		objs = append(objs, prepObjForResponse(db.TdfObject{
-			ID:      item.ID,
-			Ts:      item.Ts,
-			SrcType: item.SrcType,
-			Geo:     item.Geo.(*geos.Geom),
-			TdfBlob: item.TdfBlob,
+			ID:       item.ID,
+			Ts:       item.Ts,
+			SrcType:  item.SrcType,
+			Geo:      item.Geo.(*geos.Geom),
+			Search:   item.Search,
+			Metadata: item.Metadata,
+			TdfBlob:  item.TdfBlob,
 		}))
 	}
 	return objs, nil
@@ -120,11 +125,13 @@ func dbQuerySearch(ctx context.Context, query *db.Queries, params db.ListTdfObje
 	objs := make([]*tdf_objectv1.TdfObject, 0, len(items))
 	for _, item := range items {
 		objs = append(objs, prepObjForResponse(db.TdfObject{
-			ID:      item.ID,
-			Ts:      item.Ts,
-			SrcType: item.SrcType,
-			Geo:     item.Geo.(*geos.Geom),
-			TdfBlob: item.TdfBlob,
+			ID:       item.ID,
+			Ts:       item.Ts,
+			SrcType:  item.SrcType,
+			Search:   item.Search,
+			Metadata: item.Metadata,
+			Geo:      item.Geo.(*geos.Geom),
+			TdfBlob:  item.TdfBlob,
 		}))
 	}
 	return objs, nil
@@ -138,11 +145,13 @@ func dbQueryGeo(ctx context.Context, query *db.Queries, params db.ListTdfObjects
 	objs := make([]*tdf_objectv1.TdfObject, 0, len(items))
 	for _, item := range items {
 		objs = append(objs, prepObjForResponse(db.TdfObject{
-			ID:      item.ID,
-			Ts:      item.Ts,
-			SrcType: item.SrcType,
-			Geo:     item.Geo.(*geos.Geom),
-			TdfBlob: item.TdfBlob,
+			ID:       item.ID,
+			Ts:       item.Ts,
+			SrcType:  item.SrcType,
+			Search:   item.Search,
+			Metadata: item.Metadata,
+			Geo:      item.Geo.(*geos.Geom),
+			TdfBlob:  item.TdfBlob,
 		}))
 	}
 	return objs, nil
@@ -156,11 +165,13 @@ func dbQuery(ctx context.Context, query *db.Queries, params db.ListTdfObjectsPar
 	objs := make([]*tdf_objectv1.TdfObject, 0, len(items))
 	for _, item := range items {
 		objs = append(objs, prepObjForResponse(db.TdfObject{
-			ID:      item.ID,
-			Ts:      item.Ts,
-			SrcType: item.SrcType,
-			Geo:     item.Geo.(*geos.Geom),
-			TdfBlob: item.TdfBlob,
+			ID:       item.ID,
+			Ts:       item.Ts,
+			SrcType:  item.SrcType,
+			Search:   item.Search,
+			Metadata: item.Metadata,
+			Geo:      item.Geo.(*geos.Geom),
+			TdfBlob:  item.TdfBlob,
 		}))
 	}
 	return objs, nil

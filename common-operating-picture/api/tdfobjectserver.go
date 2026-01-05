@@ -57,7 +57,7 @@ func (s *TdfObjectServer) CreateTdfNote(
 	search := []byte(req.Msg.Search)
 	if len(search) == 0 {
 		// todo: figure out how to use with NULL db type
-		search = []byte("null")
+		search = []byte("{}")
 	}
 
 	// Convert the string to uuid.UUID
@@ -138,6 +138,10 @@ func (s *TdfObjectServer) UpdateTdfObject(
 		params.Search = []byte(req.Msg.Search.GetValue())
 	}
 
+	if req.Msg.Metadata != nil {
+		params.Metadata = []byte(req.Msg.Metadata.GetValue())
+	}
+
 	if req.Msg.TdfBlob != nil {
 		params.TdfBlob = req.Msg.TdfBlob.GetValue()
 	}
@@ -204,6 +208,11 @@ func (s *TdfObjectServer) CreateTdfObject(
 		search = []byte("null")
 	}
 
+	metadata := []byte(req.Msg.Metadata)
+	if len(metadata) == 0 {
+		metadata = []byte("{}")
+	}
+
 	var ts pgtype.Timestamp
 	if req.Msg.Ts != nil {
 		ts = pgtype.Timestamp{Time: req.Msg.GetTs().AsTime().UTC(), Valid: true}
@@ -219,6 +228,7 @@ func (s *TdfObjectServer) CreateTdfObject(
 			Ts:      ts,
 			Geo:     geo,
 			Search:  search,
+			Metadata: metadata,
 			TdfBlob: req.Msg.TdfBlob,
 		},
 	}).QueryRow(func(i int, id uuid.UUID, err error) {
@@ -424,25 +434,41 @@ func (s *TdfObjectServer) QueryTdfObjects(
 	// filter out TDFs that the user does not have access to
 	filteredTdfObjects := make([]*tdf_objectv1.TdfObject, 0, len(tdfObjects))
 	for _, t := range tdfObjects {
-		if t.Search != "" {
-			// unmarshal the search string into a map
-			var searchAttributes util.TDFObjectSearchAttributes
-			if err := json.Unmarshal([]byte(t.Search), &searchAttributes); err != nil {
-				slog.Error("error unmarshalling search string", slog.String("error", err.Error()))
-				continue
-			}
-
-			// remove plaintext from results to reduce risk of leaking sensitive data
-			if v, err := util.TrimTDFVisibility(searchAttributes, entitlements); !v {
-				if err != nil {
-					slog.Error("error trimming TDF visibility", slog.String("error", err.Error()))
-				}
-				continue
-			}
+		if t.Search == "" {
+			slog.Warn("Empty search field in DB", "id", t.Id)
+			filteredTdfObjects = append(filteredTdfObjects, t)
+			continue
+		}
+		// unmarshal the search string into a map
+		var searchAttributes util.TDFObjectSearchAttributes
+		if err := json.Unmarshal([]byte(t.Search), &searchAttributes); err != nil {
+			slog.Error("error unmarshalling search string", slog.String("error", err.Error()))
+			continue
 		}
 
-		// remove search string from results to reduce risk of leaking sensitive data
-		t.Search = ""
+		// remove plaintext from results to reduce risk of leaking sensitive data
+		canSee, err := util.TrimTDFVisibility(searchAttributes, entitlements)
+		if err != nil {
+			slog.Error("error trimming TDF visibility", slog.String("error", err.Error()))
+		}
+		if !canSee {
+			continue
+		}
+
+		prunedAttributes := map[string]interface{}{
+		"attrRelTo":          searchAttributes.RelTo,
+		"attrNeedToKnow":     searchAttributes.NeedToKnow,
+		"attrClassification": searchAttributes.Classification,
+		}
+
+		prunedJSON, err := json.Marshal(prunedAttributes)
+		if err != nil {
+			slog.Error("error re-marshalling pruned attributes", slog.String("error", err.Error()))
+			t.Search = "{}"
+		} else {
+			t.Search = string(prunedJSON)
+		}
+
 		filteredTdfObjects = append(filteredTdfObjects, t)
 	}
 
