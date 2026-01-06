@@ -23,7 +23,7 @@ Table of Contents
 
 ## Quick Start
 
-This applicaiton can be run in two modes:
+This application can be run in two modes:
 1. `Lite` - Sits on top of an already-deployed DSP stack
    - Follow [lite-deployment.md](./deploy/lite/lite-deployment.md)
 1. `Full` - Deploys a full DSP stack
