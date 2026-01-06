@@ -203,9 +203,9 @@ Use Docker Compose to build and start the environment.
 
 **Start the environment:**
 
-   ```bash
-   docker compose --env-file env/default.env -f docker-compose.dev.yaml up --build --force-recreate
-   ```
+```bash
+docker compose --env-file env/default.env -f docker-compose.dev.yaml up --build --force-recreate
+```
    This starts the following services:
 
    1. [COP database](./compose/docker-compose.cop-db.yaml)
@@ -224,14 +224,16 @@ Use Docker Compose to build and start the environment.
       3. Run with envfile and nifi profile enabled: `docker compose --profile nifi -f docker-compose.all.yaml --env-file=./env/default.env up`
          * Note that NiFi uses significant resources; ensure your docker env has sufficient resources allocated
 
-The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
-to also run the following down command as it will cleanup the container remnants.
+Local COP Application URL: https://local-dsp.virtru.com:5001/
 
 **Stop the environment:**
 
-   ```bash
-   docker compose --env-file env/default.env -f docker-compose.dev.yaml down
-   ```
+The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
+to also run the following down command as it will cleanup the container remnants.
+
+```bash
+docker compose --env-file env/default.env -f docker-compose.dev.yaml down
+```
 
 ---
 

@@ -114,16 +114,16 @@ Use Docker Compose to build and start the environment.
 docker compose --env-file env/default.env -f docker-compose.dev.yaml up --build --force-recreate
 ```
 
-The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
-to also run the following down command as it will cleanup the container remnants.
+Local COP Application URL: https://local-dsp.virtru.com:5001/
 
 **Stop the environment:**
+
+The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
+to also run the following down command as it will cleanup the container remnants.
 
 ```bash
 docker compose --env-file env/default.env -f docker-compose.dev.yaml down
 ```
-
----
 
 ### Step 5. Seeding Vehicle Data and Live Data Flow Simulation
 
