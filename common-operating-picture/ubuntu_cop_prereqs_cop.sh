@@ -124,7 +124,7 @@ echo ""
 echo "To Finalize COP Setup Follow:"
 echo ""
 echo "1. Reboot or log out/in for Docker group and ~/.bashrc changes to take effect."
-echo "2. Continue to Step 1 in startupInstructions.md to start the COP services."
+echo "2. Continue to Step 1 in startupInstructions.md/README.md to start the COP services."
 echo ""
 echo "===================================="
 

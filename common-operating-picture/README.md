@@ -134,7 +134,7 @@ To install necessary dependencies automatically, run the provided script:
 
 You need SSL certificates for local development.
 
-**Option A: Manual Setup**
+**Option A: Script Setup**
 Run the key generation script:
 
 ```bash
@@ -161,13 +161,22 @@ Unzip the main bundle and unpack the specific DSP tools. Replace `X.X.X`, `<os>`
 
    # 2. Unpack DSP Tools
    tar -xvf tools/dsp/data-security-platform_X.X.X_<os>_<arch>.tar.gz
+      #Example - AMD linux:
+      tar -xvf tools/dsp/data-security-platform_2.7.1_linux_amd64.tar.gz
 
    # 3. Unpack and setup Helm
    tar -xvf tools/helm/helm-vX.X.X-<os>-<arch>.tar.gz
+      #Example - AMD linux:
+      tar -xvf tools/helm/helm-v3.15.4-linux-amd64.tar.gz
+   # Then move command into working directory
    mv <os>-<arch>/helm ./helm
 
    # 4. Unpack and setup grpcurl
    tar -xvf tools/grpcurl/grpcurl_X.X.X_<os>_<arch>.tar.gz
+      #Example - AMD linux:
+      tar -xvf tools/grpcurl/grpcurl_1.9.1_linux_x86_64.tar.gz
+
+   # Make Executable
    chmod +x ./grpcurl
    ```
 
@@ -215,6 +224,9 @@ Use Docker Compose to build and start the environment.
       3. Run with envfile and nifi profile enabled: `docker compose --profile nifi -f docker-compose.all.yaml --env-file=./env/default.env up`
          * Note that NiFi uses significant resources; ensure your docker env has sufficient resources allocated
 
+The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
+to also run the following down command as it will cleanup the container remnants.
+
 **Stop the environment:**
 
    ```bash
@@ -256,8 +268,15 @@ Following the successful building of COP:
    # Start simulation
    # NUM_ENTITIES will determine how many moving entities the script will query the database for and apply movement logic to
    # UPDATE_INTERVAL_SECONDS determins the frequency of movement for each object
-   # "lat_change": random.uniform(-X, X) AND "lon_change": random.uniform(-Y, Y) determine the amount of movement for each cycle
-   python3 sim_data3.py
+   # BOUNDING_BOX_PARAMS define the area for the OpenSky query for live planes (smaller box results in less credits used on init).
+
+   # For live data from OpenSky Network login to https://opensky-network.org/, download credentials file (credentials.json),
+   # place the file in the base director (where the sim_data.py script is located) and then run:
+   python3 sim_data.py
+
+   # For a fake simulation that does not require the credentials file or use account credits with OpenSky run this script
+   # for simulated movement:
+   python3 sim_data_fake_opensky.py
    ```
 
 ### Troubleshooting & Verification Checklist
