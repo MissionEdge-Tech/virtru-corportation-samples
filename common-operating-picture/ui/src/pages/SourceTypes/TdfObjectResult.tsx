@@ -11,7 +11,7 @@ import { CreateTdfNoteRequest } from '@/proto/tdf_object/v1/tdf_note_pb';
 import { PartialMessage } from '@bufbuild/protobuf';
 import { useTDF } from '@/hooks/useTdf';
 import { BannerContext, extractValues } from '@/contexts/BannerContext';
-import { checkNoteEntitlements } from '@/utils/attributes';
+import { checkNoteEntitlements, checkRelToEntitlements, reltoMap } from '@/utils/attributes';
 import { ObjectBanner } from '@/components/ObjectBanner';
 
 // Note data structure to pass note attributes back to parent
@@ -141,22 +141,32 @@ export function TdfObjectResult({ tdfObjectResponse: o, categorizedData, onFlyTo
     // Loop through each category and populate attrs based on local selections
     Object.keys(categorizedData).forEach((category) => {
       const selectedValue = localSelectedValues[category];
-      if (selectedValue) {
-        // Get the selected value for the category from selectedValues
-        const categoryKey = `attr${category.charAt(0).toUpperCase() + category.slice(1)}`;
+      if (!selectedValue) return;
 
-        // Handle both single and multiple selections
-        const valuesToProcess = Array.isArray(selectedValue) ? selectedValue : [selectedValue];
+      // Get the selected value for the category from selectedValues
+      const categoryKey = `attr${category.charAt(0).toUpperCase() + category.slice(1)}`;
 
-        if (attrs[categoryKey]) {
-          valuesToProcess.forEach(selectedValue => {
-            if (selectedValue) {
-              attrs[categoryKey].push(`https://demo.com/attr/${category}/value/${selectedValue}`);
-            }
-          });
-        }
+      // Handle both single and multiple selections
+      const valuesToProcess = Array.isArray(selectedValue) ? selectedValue : [selectedValue];
+
+      if (attrs[categoryKey]) {
+        valuesToProcess.forEach(val => {
+          // Check if it's relto to apply the specific format
+          if (category.toLowerCase() === 'relto') {
+            // Force lowercase for the value in the URL
+            attrs[categoryKey].push(`https://demo.com/attr/relto/value/${val.toLowerCase()}`);
+          } else {
+            attrs[categoryKey].push(`https://demo.com/attr/${category}/value/${val}`);
+          }
+        });
       }
     });
+
+    // Check entitlements for the selected relTo before submission
+    if (checkRelToEntitlements(attrs.attrRelto, activeEntitlements)) {
+      window.alert("You do not have the required RelTo entitlements to submit this note.");
+      return;
+    }
 
     // Encrypt and submit
     const tdfBlob = await encrypt(JSON.stringify(trimmedNoteText), Object.values(attrs).flat());
@@ -306,9 +316,15 @@ export function TdfObjectResult({ tdfObjectResponse: o, categorizedData, onFlyTo
         {/* Dynamic Dropdowns */}
         <Box sx={{ mt: 2 }}>
           {Object.keys(categorizedData).map((category) => {
-            const isMultiSelect = category === 'needtoknow' || category === 'relto';
+            const isRelTo = category.toLowerCase() === 'relto';
+            const isMultiSelect = category === 'needtoknow' || isRelTo;
+
             const currentValue = localSelectedValues[category];
             const selectValue = isMultiSelect ? (Array.isArray(currentValue) ? currentValue : []) : (currentValue || '');
+
+            // Determine which options to show
+            // If it's relto, use the reltoMap keys. Otherwise, use categorizedData.
+            const options = isRelTo ? Object.keys(reltoMap) : categorizedData[category];
 
             return (
               <Box key={category} sx={{ mb: 2 }}>
@@ -320,11 +336,15 @@ export function TdfObjectResult({ tdfObjectResponse: o, categorizedData, onFlyTo
                     onChange={(e) => handleDropdownChange(category, e.target.value)}
                     multiple={isMultiSelect}
                   >
-                    {categorizedData[category].map((value) => (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    ))}
+                    {options.map((key) => {
+                      // If relto, show the human-readable label (e.g., "AUSTRALIA")
+                      const label = isRelTo ? reltoMap[key].label : key;
+                      return (
+                        <MenuItem key={key} value={key}>
+                          {label}
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               </Box>

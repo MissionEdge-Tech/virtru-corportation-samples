@@ -17,9 +17,33 @@ export const Banner = () => {
     const highestClass = [...Classifications]
       .reverse()
       .find(cls => activeValues.includes(cls)) || 'UNCLASSIFIED';
-    const caveats = activeValues.filter(val => !Classifications.includes(val));
-    const displayString = caveats.length > 0
-      ? `${highestClass}//${caveats.join('//')}`
+
+    const ntkCaveats: string[] = [];
+    const relValues: string[] = [];
+
+    activeEntitlements.forEach(fqn => {
+      const val = getFqnValue(fqn);
+      if (Classifications.includes(val)) return;
+
+      // If the path contains 'relto', treat it as a REL TO value
+      if (fqn.toLowerCase().includes('relto')) {
+        relValues.push(val);
+      } else {
+        ntkCaveats.push(val);
+      }
+    });
+
+    // Format the REL TO string with commas
+    const formattedRel = relValues.length > 0
+      ? `REL TO ${relValues.join(', ')}`
+      : '';
+
+    // Combine
+    const allCaveats = [...ntkCaveats];
+    if (formattedRel) allCaveats.push(formattedRel);
+
+    const displayString = allCaveats.length > 0
+      ? `${highestClass}//${allCaveats.join('//')}`
       : highestClass;
 
     return {

@@ -118,6 +118,19 @@ export const checkNoteEntitlements = (tdfNote: TdfNotesResponse, activeEntitleme
     return false; // Success: All checks passed
 };
 
+// Checks if the user has the required RelTo entitlements. Returns true if the user is missing required RelTo values.
+export const checkRelToEntitlements = (relToAttrs: string[] | undefined, activeEntitlements: Set<string>): boolean => {
+    if (!relToAttrs || relToAttrs.length === 0) return false; // No RelTo attributes means no entitlement check needed
+
+    // Check if the user has any of the RelTo attributes with array check for overlapping elements between relToAttrs and activeEntitlements
+    const hasAtLeastOneRelTo = relToAttrs.some(rel => activeEntitlements.has(rel));
+
+    if (!hasAtLeastOneRelTo) {
+        return true; // Fail if user does not have any of the specified RelTo values
+    }
+
+    return false; // Success: User has at least one of the required RelTo values
+};
 
 // Utility to calculate all subordinate classifications for a selected classification.
 export const getSubordinateClassifications = (selectedClass: string): string[] => {
@@ -201,7 +214,7 @@ export function getAttributes(...attrs: Array<string | string[] | undefined>): s
   return flattened;
 }
 
-const reltoMap: {
+export const reltoMap: {
   [attrValue: string]: {
     label: string;
     group?: string;
