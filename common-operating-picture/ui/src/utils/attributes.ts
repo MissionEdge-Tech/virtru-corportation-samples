@@ -26,32 +26,40 @@ export const checkObjectEntitlements = (tdfObject: TdfObjectResponse, activeEnti
     const needToKnow = tdfObject.decryptedData.attrNeedToKnow || [];
     const relTo = tdfObject.decryptedData.attrRelTo || [];
 
-    // Process attributes
-    const objClassification = extractValues(classification);
-    const objNeedToKnows = extractValues(needToKnow);
-    const objRelTo = extractValues(relTo);
+    // Process and split attributes into arrays
+    const splitValues = (val: any) => extractValues(val).split(', ').filter(v => v.trim() !== '');
 
-    // Collect all unique
-    const allObjectAttributes = [
-        ...objClassification.split(', ').filter(v => v.trim() !== ''),
-        ...objNeedToKnows.split(', ').filter(v => v.trim() !== ''),
-        ...objRelTo.split(', ').filter(v => v.trim() !== ''),
-    ];
+    const objClassification = splitValues(classification);
+    const objNeedToKnows = splitValues(needToKnow);
+    const objRelTo = splitValues(relTo);
 
-    // Convert active entitlements to uppercase
+    // Prepare user entitlements
     const trimmedEntitlements = new Set(
         [...activeEntitlements].map(extractAttributeValueFromFqn)
     );
 
-    // Check if any object attribute is not present in the active entitlements
-    for (const attr of allObjectAttributes) {
+    // All of check (Classification & Need To Know)
+    // User must have every single one of these attributes.
+    const allofAttributes = [...objClassification, ...objNeedToKnows];
+    for (const attr of allofAttributes) {
         if (!trimmedEntitlements.has(attr.toUpperCase())) {
-            // console.log(`Missing entitlement for attribute: ${attr}`);
-            return true; // Contains an unavailable attribute
+            return true; // Fail due to missing a required all of attribute
         }
     }
 
-    return false; // User is entitled to view object
+    // "any of" check for RelTo
+    // If RelTo attributes exist, the user only needs to match ONE.
+    if (objRelTo.length > 0) {
+        const hasAtLeastOneRelTo = objRelTo.some(rel =>
+            trimmedEntitlements.has(rel.toUpperCase())
+        );
+
+        if (!hasAtLeastOneRelTo) {
+            return true; // Fail if user does not match any of the RelTo values
+        }
+    }
+
+    return false; // Success: All checks passed
 };
 
 export const checkNoteEntitlements = (tdfNote: TdfNotesResponse, activeEntitlements: Set<string>): boolean => {
@@ -70,11 +78,6 @@ export const checkNoteEntitlements = (tdfNote: TdfNotesResponse, activeEntitleme
         return true;
     }
 
-    // Get the raw attribute data from the note
-    const classification = searchAttributes.attrClassification;
-    const needToKnow = searchAttributes.attrNeedtoknow || [];
-    const relTo = searchAttributes.attrRelto || [];
-
     const extractNoteAttr = (attrArray: string[] | undefined): string[] => {
         if (!attrArray || attrArray.length === 0) return [];
         return attrArray.map((attrUrl: string) =>
@@ -82,31 +85,37 @@ export const checkNoteEntitlements = (tdfNote: TdfNotesResponse, activeEntitleme
         ).filter(v => v.trim() !== '');
     };
 
-    const objClassification = extractNoteAttr(classification);
-    const objNeedToKnows = extractNoteAttr(needToKnow);
-    const objRelTo = extractNoteAttr(relTo);
-
-    // Collect all unique
-    const allObjectAttributes = [
-        ...objClassification,
-        ...objNeedToKnows,
-        ...objRelTo,
-    ];
-
-    // Convert active entitlements to uppercase
+    // Prepare the user's entitlements (normalized to uppercase)
     const trimmedEntitlements = new Set(
         [...activeEntitlements].map(extractAttributeValueFromFqn)
     );
 
-    // Check if any object attribute is not present in the active entitlements
-    for (const attr of allObjectAttributes) {
-        if (!trimmedEntitlements.has(attr)) { 
-            // console.log(`Missing entitlement for attribute: ${attr}`);
-            return true; // Contains an unavailable attribute
+    // Normalize Note Attributes
+    const noteClass = extractNoteAttr(searchAttributes.attrClassification);
+    const noteNTK = extractNoteAttr(searchAttributes.attrNeedtoknow);
+    const noteRelTo = extractNoteAttr(searchAttributes.attrRelto);
+
+    // All of check (Classification & NeedToKnow)
+    // The user must have every single one of these attributes.
+    const allofAttributes = [...noteClass, ...noteNTK];
+    for (const attr of allofAttributes) {
+        if (!trimmedEntitlements.has(attr)) {
+            return true; // Fail due to missing a required all of attribute
         }
     }
 
-    return false; // User is entitled to view object
+    // Any of check
+    // If RelTo attributes exist, the user only needs to match ONE.
+    if (noteRelTo.length > 0) {
+        const hasAtLeastOneRelTo = noteRelTo.some(rel => trimmedEntitlements.has(rel));
+
+        if (!hasAtLeastOneRelTo) {
+            // console.log("User does not have any of the required RelTo attributes");
+            return true; // Fail user has none of the specified RelTo values
+        }
+    }
+
+    return false; // Success: All checks passed
 };
 
 
@@ -141,12 +150,23 @@ export const checkAndSetUnavailableAttributes = (
             // Normalize value to an array if it's a single select/string
             let values = Array.isArray(value) ? value : [value as string];
 
-            values.forEach((v: string) => {
-                // If value exists and is NOT in the user's entitlements set, add it to the unavailable list
-                if (v && !entitlements.has(v)) {
-                    acc.push(v);
+            if (key === 'attrRelTo') {
+                // Check if the user has any of these values in their entitlements
+                const hasAtLeastOne = values.some(v => entitlements.has(v));
+
+                // If they have none of the values mark the whole set as unavailable
+                if (!hasAtLeastOne && values.length > 0) {
+                    acc.push(...values);
                 }
-            });
+            }
+            // All of logic for the rest of the attributes
+            else {
+                values.forEach((v: string) => {
+                    if (v && !entitlements.has(v)) {
+                        acc.push(v);
+                    }
+                });
+            }
         }
         return acc;
     }, []);
