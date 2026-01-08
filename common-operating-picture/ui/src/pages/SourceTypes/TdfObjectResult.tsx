@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { LatLng } from 'leaflet';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button,
+import { Accordion, AccordionDetails, AccordionSummary, Autocomplete, Box, Button, Chip,
   IconButton, TextField, Stack, Typography, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { ExpandMore, GpsFixed } from '@mui/icons-material';
 import { TdfObjectResponse, TdfNotesResponse, useRpcClient } from '@/hooks/useRpcClient';
@@ -318,13 +318,30 @@ export function TdfObjectResult({ tdfObjectResponse: o, categorizedData, onFlyTo
           {Object.keys(categorizedData).map((category) => {
             const isRelTo = category.toLowerCase() === 'relto';
             const isMultiSelect = category === 'needtoknow' || isRelTo;
-
-            const currentValue = localSelectedValues[category];
-            const selectValue = isMultiSelect ? (Array.isArray(currentValue) ? currentValue : []) : (currentValue || '');
-
-            // Determine which options to show
-            // If it's relto, use the reltoMap keys. Otherwise, use categorizedData.
             const options = isRelTo ? Object.keys(reltoMap) : categorizedData[category];
+            const currentValue = localSelectedValues[category] || (isMultiSelect ? [] : '');
+
+            if (isMultiSelect) {
+              return (
+                <Box key={category} sx={{ mb: 2 }}>
+                  <Autocomplete
+                    multiple
+                    options={options}
+                    getOptionLabel={(option) => isRelTo ? reltoMap[option]?.label || option : option}
+                    value={Array.isArray(currentValue) ? currentValue : []}
+                    onChange={(_, newValue) => handleDropdownChange(category, newValue)}
+                    renderInput={(params) => (
+                      <TextField {...params} variant="outlined" label={category.charAt(0).toUpperCase() + category.slice(1)} placeholder="Select..." />
+                    )}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => (
+                        <Chip label={isRelTo ? reltoMap[option]?.label || option : option} {...getTagProps({ index })} size="small" />
+                      ))
+                    }
+                  />
+                </Box>
+              );
+            }
 
             return (
               <Box key={category} sx={{ mb: 2 }}>
@@ -332,19 +349,12 @@ export function TdfObjectResult({ tdfObjectResponse: o, categorizedData, onFlyTo
                   <InputLabel>{category.charAt(0).toUpperCase() + category.slice(1)}</InputLabel>
                   <Select
                     label={category.charAt(0).toUpperCase() + category.slice(1)}
-                    value={selectValue}
-                    onChange={(e) => handleDropdownChange(category, e.target.value)}
-                    multiple={isMultiSelect}
+                    value={currentValue}
+                    onChange={(e) => handleDropdownChange(category, e.target.value as string)}
                   >
-                    {options.map((key) => {
-                      // If relto, show the human-readable label (e.g., "AUSTRALIA")
-                      const label = isRelTo ? reltoMap[key].label : key;
-                      return (
-                        <MenuItem key={key} value={key}>
-                          {label}
-                        </MenuItem>
-                      );
-                    })}
+                    {options.map((key) => (
+                      <MenuItem key={key} value={key}>{key}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Box>
