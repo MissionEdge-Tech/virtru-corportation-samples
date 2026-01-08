@@ -106,7 +106,7 @@ export function CreateDialog({ open, onClose }: Props) {
       return;
     }
 
-    // Disable search if unauthorized entitlements
+    // Disable submit if unauthorized entitlements
     if (unavailableAttrs.length > 0) {
         console.warn('Attempted search with missing entitlements. Submission blocked.');
         return;
@@ -119,9 +119,6 @@ export function CreateDialog({ open, onClose }: Props) {
           attrs.push(...getAttributes(formData[field]));
         }
       }
-
-      //console.debug('Form Data to submit:', formData);
-      //console.debug('Attributes for encryption:', attrs);
 
       const tdfBlob = await encrypt(JSON.stringify(formData), attrs);
 
@@ -147,10 +144,6 @@ export function CreateDialog({ open, onClose }: Props) {
         tdfObject.geo = JSON.stringify(geo);
       }
 
-      //console.debug('Geos:', tdfObject.geo);
-      //console.debug('Attrs:', attrs);
-
-
       const searchPlaintext: Record<string, any> = {};
       for (const field of searchFields || []) {
         if (formData[field]) {
@@ -165,10 +158,7 @@ export function CreateDialog({ open, onClose }: Props) {
         const utcDate = dayjs(formData[tsField]).utc().toDate();
         tdfObject.ts = Timestamp.fromDate(utcDate);
       }
-      //console.debug('Timestamp:', tdfObject);
-      //const response =
       await createTdfObject(tdfObject);
-      //console.debug('Form submission successful:', response);
 
       onClose();
     } catch (err) {
@@ -214,17 +204,6 @@ export function CreateDialog({ open, onClose }: Props) {
 
     return null;
   };
-
-  /*
-  useEffect(() => {
-    if (user) {
-      updateEntitlementsFromUser(user, setEntitlements);
-
-      //Printing locally read entitlements
-      console.log('User Entitlements:', user.entitlements);
-    }
-  }, [user]);
-  */
 
   return (
     <Dialog open={open} fullScreen sx={{ margin: '5%' }}>

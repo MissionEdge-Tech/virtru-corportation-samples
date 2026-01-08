@@ -58,8 +58,14 @@ export const ObjectBanner = ({ objClassification, objNTK, objRel, notes }: Objec
   const combinedNTK = Array.from(ntkValues);
   const combinedRel = Array.from(relValues);
   const finalNTK = combinedNTK.filter(v => v !== highestClass && v !== '');
-  const finalRel = combinedRel.filter(v => v !== highestClass && v !== '');
-  const allCaveats = [...finalNTK, ...finalRel];
+  const finalRelRaw = combinedRel.filter(v => v !== highestClass && v !== '');
+
+  // Join all countries with a comma, then add one "REL TO" at the start
+  const formattedRel = finalRelRaw.length > 0
+    ? [`REL TO ${finalRelRaw.join(', ')}`]
+    : [];
+
+  const allCaveats = [...finalNTK, ...formattedRel];
 
   const displayString = allCaveats.length > 0
     ? `${highestClass}//${allCaveats.join('//')}`
