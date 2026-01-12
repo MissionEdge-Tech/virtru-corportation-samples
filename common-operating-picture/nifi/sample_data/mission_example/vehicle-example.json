@@ -1,0 +1,29 @@
+{
+    "CompositeObject": [
+        {
+            "Type": "vehicles",
+            "Details": {
+                "vehicleName": "US-999-X",
+                "origin": "IAD",
+                "destination": "LHR",
+                "aircraft_type": "Boeing 747",
+                "Coord": "389531000N0774565000W",
+                "ProducerDateTimeLastChg": "2024-06-15T14:30:00Z"
+            },
+            "Search": {
+                "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": [
+                    "https://demo.com/attr/classification/value/secret"
+                ]
+            },
+            "Metadata": {
+                "callsign": "AF-1",
+                "speed": "900 km/h",
+                "altitude": "10000 m",
+                "heading": "90"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-001</icid:Identifier>\n   <edh:DataItemCreateDateTime>2024-06-15T14:30:00Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"S\" ism:ownerProducer=\"USA\" ism:SCIcontrols=\"\" ism:disseminationControls=\"\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2024-06-15\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"Flight Plan\" ism:declassDate=\"2030-01-01\"/>\n</edh:ExternalEdh>"
+        }
+    ]
+}
