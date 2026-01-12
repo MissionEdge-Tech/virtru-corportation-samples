@@ -17,8 +17,8 @@ DB_USER = "postgres"
 DB_PASSWORD = "changeme"
 DB_HOST = "localhost"
 DB_PORT = 15432
-NUM_RECORDS = 50
-BATCH_SIZE = 10
+NUM_RECORDS = 5
+BATCH_SIZE = 1
 
 # --- Fixed Data for TdfObjects ---
 FIXED_SRC_TYPE = 'vehicles'
