@@ -1,0 +1,32 @@
+{
+    "CompositeObject": [
+
+        {
+            "Type": "employee",
+            "Details": {
+                "name": "Jim Iosefa",
+                "favoriteColor": "Blue",
+                "placeOfBirth": "American Samoa",
+                "Coord": "143333000S17000000000W",
+                "ProducerDateTimeLastChg": "2026-01-19T03:00:00Z",
+                    "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": [
+                    "https://demo.com/attr/classification/value/secret"
+                ]
+            },
+            "Search": {
+                "name": "Jim Iosefa",
+                "favoriteColor": "Blue",
+                "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": [
+                    "https://demo.com/attr/classification/value/secret"
+                ]
+            },
+            "Metadata": {},
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><edh:ExternalEdh>...</edh:ExternalEdh>"
+        }
+       
+    ]
+}
