@@ -1,7 +1,7 @@
 ################################################################################
 #
 # Data Security Platform (DSP) Common Operating Picture (COP) Docker Compose
-# 
+#
 # This file is used to define the services that make up the DSP COP application.
 ################################################################################
 
@@ -36,14 +36,15 @@ services:
       file: ./compose/docker-compose.cop-db.yaml
       service: cop-db-setup
 
-#================================================================
-# Start the COP web server (go process + react app)
-#----------------------------------------------------------------
-  cop-web-server:
-    extends:
-      file: ./compose/docker-compose.cop-web-server.yaml
-      service: cop-web-server
-      
+#Removed service cop-web-server as it is now deployed via Helm Chart in Kubernetes
+# #================================================================
+# # Start the COP web server (go process + react app)
+# #----------------------------------------------------------------
+#   cop-web-server:
+#     extends:
+#       file: ./compose/docker-compose.cop-web-server.yaml
+#       service: cop-web-server
+
 #================================================================
 # Start Keycloak
 #----------------------------------------------------------------
@@ -53,7 +54,7 @@ services:
       service: keycloak
 
 #================================================================
-# Provisioning Keycloak with expected realm, clients, and users 
+# Provisioning Keycloak with expected realm, clients, and users
 #----------------------------------------------------------------
   dsp-keycloak-provisioning:
     extends:
@@ -85,24 +86,12 @@ services:
       service: dsp-provision-federal-policy
 
 #================================================================
-# Wait for someone needing a shell 
+# Wait for someone needing a shell
 #----------------------------------------------------------------
   dsp-cli-user:
     extends:
       file: ./compose/docker-compose.dsp.yaml
       service: dsp-cli-user
-
 #================================================================
-# Start NiFi - EXPERIMENTAL AND NOT YET SUPPORTED
-#----------------------------------------------------------------
-  nifi:
-    profiles: [nifi]
-    extends:
-      file: ./compose/docker-compose.nifi.yaml
-      service: nifi
 
-  tagging:
-    profiles: [nifi]
-    extends:
-      file: ./compose/docker-compose.tagging.yaml
-      service: tagging
+# Removed service dsp-nifi as it was not implemented at time of Helm conversion

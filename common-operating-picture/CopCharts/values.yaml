@@ -1,0 +1,35 @@
+image: localhost:5000/virtru-dsp-cop-web-server:dev
+replicas: 1
+
+service:
+  type: NodePort
+  port: 5001
+
+config:
+  service:
+    # Use "*" for dev to stop all CORS issues, or "http://<VM-IP>:<NodePort>"
+    cors_origin: "*"
+
+    # Point the frontend to the NodePort 31777
+    public_server_host: "https://local-dsp.virtru.com:31777"
+    # The URL you use in the browser
+    public_static_host: "https://local-dsp.virtru.com:31234"
+
+    # Timeouts
+    static_write_timeout: 60
+    static_read_timeout: 60
+
+    # Service URLs and settings
+    postgres_db: "postgres"
+    postgres_password: "changeme"
+    postgres_user: "postgres"
+    dsp_base_url: "https://local-dsp.virtru.com:8080"
+    dsp_kas_url: "https://local-dsp.virtru.com:8080/kas"
+    dsp_kc_client_id: "dsp-cop-client"
+    dsp_kc_direct_auth: "false"
+    dsp_kc_server_url: "https://local-dsp.virtru.com:8443/auth/realms/opentdf"
+    form_submit_nano_tdf: "true"
+
+  ui:
+    tile_server_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    form_submit_nano_tdf: true

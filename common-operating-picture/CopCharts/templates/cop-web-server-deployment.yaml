@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f compose/docker-compose.cop-web-server.yaml -c -o CopCharts/
+    kompose.version: 1.31.2 (a92241f79)
+  labels:
+    io.kompose.service: cop-web-server
+  name: cop-web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: cop-web-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: cop-web-server
+    spec:
+    # Add hostAliases to resolve local-dsp.virtru.com to the appropriate IP
+      hostAliases:
+        # VM IP address 
+        - ip: "10.0.2.15"
+          hostnames:
+            - "local-dsp.virtru.com"
+      containers:
+        - name: cop-web-server
+          image: {{ .Values.image }}
+          workingDir: /app
+          command: ["/usr/bin/dsp-cop"]
+          args: ["serve"]
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.config.service.postgres_db | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.config.service.postgres_password | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.config.service.postgres_user | quote }}
+            - name: VITE_DSP_BASE_URL
+              value: {{ .Values.config.service.dsp_base_url | quote }}
+            - name: VITE_DSP_KAS_URL
+              value: {{ .Values.config.service.dsp_kas_url | quote }}
+            - name: VITE_DSP_KC_CLIENT_ID
+              value: {{ .Values.config.service.dsp_kc_client_id | quote }}
+            - name: VITE_DSP_KC_DIRECT_AUTH
+              value: {{ .Values.config.service.dsp_kc_direct_auth | quote }}
+            - name: VITE_DSP_KC_SERVER_URL
+              value: {{ .Values.config.service.dsp_kc_server_url | quote }}
+            - name: VITE_FORM_SUBMIT_NANO_TDF
+              value: {{ .Values.config.service.form_submit_nano_tdf | quote }}
+            - name: VITE_TILE_SERVER_URL
+              value: {{ .Values.config.ui.tile_server_url | quote }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.config.service.cors_origin | quote }}
+            - name: VITE_GRPC_SERVER_URL
+              value: {{ .Values.config.service.public_server_host | quote }}
+          ports:
+            - containerPort: 5001
+              protocol: TCP
+            - containerPort: 5002
+              protocol: TCP
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/dsp-cop/config.yaml
+              subPath: config.yaml
+            - name: certs-volume
+              mountPath: /app/dsp-keys/local-dsp.virtru.com.pem
+              subPath: dsp-cert.pem
+            - name: certs-volume
+              mountPath: /app/dsp-keys/local-dsp.virtru.com.key.pem
+              subPath: dsp-key.pem
+            - name: certs-volume
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: rootCA.pem
+      restartPolicy: Always
+      volumes:
+        - name: config-volume
+          configMap:
+            name: cop-config
+        - name: certs-volume
+          secret:
+            secretName: dsp-certs
