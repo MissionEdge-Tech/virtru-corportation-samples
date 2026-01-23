@@ -46,6 +46,11 @@ Infrastructure that must be deployed before starting COP Web UI in Kuberenetes:
 ```bash
     kompose version
 ```
+- Note On Conversion
+When converting docker-compose file, remove depends on section.
+```bash
+kompose convert -f compose/docker-compose.cop-web-server.yaml -c -o CopCharts/
+```
 ## Set up local registry access
 ```bash
     sudo nano /etc/rancher/k3s/registries.yaml
@@ -112,7 +117,7 @@ Unlike Docker where the images can be built at run time, Kubernetes needs a preb
 ## Check and run helm charts
 ```bash
     # Verify the Helm Charts
-    virtru-dsp-bundle/helm lint ./CopCharts
+    ./virtru-dsp-bundle/helm lint ./CopCharts
 
     # If no error on previous command, start up COP Kubernetes
     ./virtru-dsp-bundle/helm install cop-frontend ./CopCharts
