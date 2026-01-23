@@ -26,6 +26,12 @@ services:
     ports:
       - 5001:5001
       - 5002:5002
+    depends_on:
+      cop-db-setup:
+        condition: service_completed_successfully
+      dsp:
+        condition: service_healthy
+        restart: true
     extra_hosts:
       - "local-dsp.virtru.com:172.17.0.1" #host and ip
       #- "host.docker.internal:host-gateway"
