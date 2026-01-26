@@ -122,6 +122,21 @@ export function SourceTypes() {
     map.flyTo({ lat, lng }, map.getZoom());
   }, [map]);
 
+  const handleSyncVehicleDetails = async (vehicleId: string) => {
+    try {
+      // Replace with your actual API endpoint
+      const response = await fetch(`/api/vehicles/${vehicleId}/sync`);
+      const updatedData = await response.json();
+      
+      // Logic to update your local state or notify the user
+      console.log("Synced Data:", updatedData);
+      // Optional: Refresh the vehicle list after sync
+      fetchVehicles(vehicleSourceTypeId); 
+    } catch (error) {
+      console.error("Failed to fetch latest vehicle details:", error);
+    }
+  };
+
   const handleVehicleClick = useCallback((vehicle: VehicleDataItem) => {
   console.log("Selected vehicle:", vehicle);
   }, []);
@@ -304,45 +319,56 @@ export function SourceTypes() {
           </Grid>
         </Grid>
         <CreateDialog open={dialogOpen} onClose={handleDialogClose} />
+        
         {poppedOutVehicle && (
-          <Box className="popped-out-window" sx={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-            zIndex: 1000,
-            width: 450,
-            boxShadow: 3,
-            borderRadius: 1,
-            overflow: 'hidden'
-          }}>
-            <Box className="window-header" sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              p: 1,
-              bgcolor: 'primary.main',
-              color: 'white'
-            }}>
-              <Typography variant="subtitle2">Vehicle Details & Notes</Typography>
-              <IconButton size="small" onClick={() => setPoppedOutVehicle(null)} sx={{ color: 'white' }}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
-            <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto', bgcolor: 'background.paper' }}>
-              <SourceTypeProvider srcType={vehicleSrcType}>
-                <TdfObjectResult
-                  key={poppedOutVehicle.tdfObject.id}
-                  tdfObjectResponse={poppedOutVehicle}
-                  categorizedData={categorizedData || {}}
-                  onFlyToClick={handleFlyToClick}
-                  onNotesUpdated={(objectId, notes) => {
-                    console.log(`Notes updated for ${objectId}`, notes);
-                  }}
-                />
-              </SourceTypeProvider>
-            </Box>
-          </Box>
-        )}
+  <Box className="popped-out-window" sx={{ /* ... your existing styles ... */ }}>
+    <Box className="window-header" sx={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      p: 1,
+      bgcolor: 'primary.main',
+      color: 'white'
+    }}>
+      <Typography variant="subtitle2">Vehicle Details</Typography>
+      <Box>
+        {/* New Fetch Button in Header */}
+        <Button 
+          size="small" 
+          variant="contained" 
+          color="secondary"
+          sx={{ mr: 1, fontSize: '0.7rem', py: 0 }}
+          onClick={() => handleSyncVehicleDetails(poppedOutVehicle.tdfObject.id)}
+        >
+          Sync API
+        </Button>
+        <IconButton size="small" onClick={() => setPoppedOutVehicle(null)} sx={{ color: 'white' }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
+
+    <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto', bgcolor: 'background.paper' }}>
+      {/* EDIT CONTENT HERE: 
+          You can add custom Typography or Grid items 
+          that show specific API-fetched fields before the main result.
+      */}
+      <Typography variant="overline" color="textSecondary">
+        System ID: {poppedOutVehicle.tdfObject.id}
+      </Typography>
+
+      <SourceTypeProvider srcType={vehicleSrcType}>
+        <TdfObjectResult
+          key={poppedOutVehicle.tdfObject.id}
+          tdfObjectResponse={poppedOutVehicle}
+          categorizedData={categorizedData || {}}
+          onFlyToClick={handleFlyToClick}
+          onNotesUpdated={(objectId, notes) => console.log(objectId, notes)}
+        />
+      </SourceTypeProvider>
+    </Box>
+  </Box>
+)}
       </SourceTypeProvider>
     </>
   );
