@@ -2,8 +2,8 @@ import { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LayersControl, MapContainer, TileLayer } from 'react-leaflet';
 import { LatLng, Map } from 'leaflet';
-import { Box, Button, Grid, IconButton, Typography } from '@mui/material';
-import { AddCircle } from '@mui/icons-material';
+import { Box, Button, Grid, IconButton, Typography, CircularProgress } from '@mui/material';
+import { AddCircle, Sync as SyncIcon } from '@mui/icons-material';
 import { TdfObjectResponse, useRpcClient } from '@/hooks/useRpcClient';
 import { PageTitle } from '@/components/PageTitle';
 import { SourceTypeProvider } from './SourceTypeProvider';
@@ -22,6 +22,10 @@ import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import { TdfObjectResult } from './TdfObjectResult';
 import { useEntitlements } from '@/hooks/useEntitlements';
+
+// 1. New Imports for STS Integration
+import { stsService } from '@/services/STSService'; 
+import { S3Provider } from '@/types/s3';
 
 export interface VehicleDataItem {
   id: string;
@@ -42,6 +46,15 @@ export interface VehicleDataItem {
   };
 }
 
+// Configuration for STS - Usually moved to a config file
+const STS_CONFIG: S3Provider = {
+  useSts: true,
+  stsEndpoint: 'https://sts.amazonaws.com',
+  roleArn: 'arn:aws:iam::123456789012:role/service-role', 
+  region: 'us-east-1',
+  bucket: 'my-vehicle-data-bucket', // Add this line
+};
+
 export function SourceTypes() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [srcTypeId, setSrcTypeId] = useState<string | null>(null);
@@ -52,6 +65,9 @@ export function SourceTypes() {
   const [vehicleData, setVehicleData] = useState<VehicleDataItem[]>([]);
   const [vehicleSrcType, setVehicleSrcType] = useState<SrcType>();
   const [poppedOutVehicle, setPoppedOutVehicle] = useState<TdfObjectResponse | null>(null);
+  
+  // 2. Loading State for Sync Button
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { getSrcType, queryTdfObjectsLight } = useRpcClient();
   const { tdfObjects, setTdfObjects, activeEntitlements } = useContext(BannerContext);
@@ -205,26 +221,70 @@ export function SourceTypes() {
     }
   }, [searchParams, fetchSrcType, srcTypeId, setTdfObjects]);
 
-  const searchResultsTdfObjects = srcTypeId === vehicleSourceTypeId
-  ? [] // If the selected type is 'vehicles', show an empty list in SearchResults.
-  : tdfObjects; // Otherwise, show the actual tdfObjects (from BannerContext).
-
-  const handleSyncVehicleDetails = async (vehicleId: string) => {
+  // 3. Updated Sync Handler with STS Exchange & Loading State
+ const handleSyncVehicleDetails = async (vehicleId: string) => {
+    setIsSyncing(true);
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch(`/api/vehicles/${vehicleId}/sync`);
-      const updatedData = await response.json();
+      // 1. Retrieve the session data from Session Storage
+      const authDataRaw = sessionStorage.getItem('dsp:cop:user');
+      
+      if (!authDataRaw) {
+        throw new Error("Session data 'dsp:cop:user' not found. Please log in again.");
+      }
 
-      // Logic to update your local state or notify the user
-      console.log("Synced Data:", updatedData);
-      // Optional: Refresh the vehicle list after sync
-      fetchVehicles(vehicleSourceTypeId); 
-    } catch (error) {
-      console.error("Failed to fetch latest vehicle details:", error);
+      // 2. Parse the stringified JSON
+      let authData;
+      try {
+        authData = JSON.parse(authDataRaw);
+      } catch (e) {
+        throw new Error("Failed to parse session data. Storage may be corrupted.");
+      }
+
+      // 3. Extract the token. 
+      // AWS STS usually prefers the idToken, but we'll fall back to accessToken
+      const oidcToken = authData.idToken || authData.accessToken;
+
+      if (!oidcToken) {
+        throw new Error("No token found within the session object. Please re-authenticate.");
+      }
+
+      // 4. Exchange the OIDC token for AWS Credentials via STS
+      const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
+
+      // 5. Perform the authorized backend sync
+      const response = await fetch(`/api/vehicles/${vehicleId}/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Amz-Security-Token': creds.sessionToken,
+          'X-Amz-Access-Key': creds.accessKeyId,
+        }
+      });
+
+      if (!response.ok) {
+        const errorDetail = await response.text();
+        throw new Error(`Sync failed (${response.status}): ${errorDetail}`);
+      }
+
+      const updatedData = await response.json();
+      console.log("Vehicle Sync Successful:", updatedData);
+      
+      // 6. Refresh the local vehicle list to show updated data
+      await fetchVehicles(vehicleSourceTypeId); 
+
+    } catch (error: any) {
+      // Log the full error for debugging and alert the user
+      console.error("Vehicle Sync Error:", error);
+      alert(error.message || "An unexpected error occurred during sync.");
+    } finally {
+      setIsSyncing(false);
     }
   };
 
-  
+  const searchResultsTdfObjects = srcTypeId === vehicleSourceTypeId
+  ? [] 
+  : tdfObjects; 
+
   return (
     <>
       <PageTitle
@@ -235,7 +295,6 @@ export function SourceTypes() {
           <Grid item xs={12} md={7}>
             <MapContainer style={{ width: '100%', height: '80vh' }} center={[0, 0]} zoom={3} ref={setMap}>
               <LayersControl position="topright">
-                {/* Base Layers */}
                 <LayersControl.BaseLayer checked name="Street">
                   <TileLayer
                     url={config.tileServerUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
@@ -255,10 +314,8 @@ export function SourceTypes() {
                   />
                 </LayersControl.BaseLayer>
 
-                {/* Overlay Layers */}
                 {filteredVehicleData.length > 0 && (
                   <LayersControl.Overlay name="Planes" checked>
-                    {/* Vehicle Layer - key forces re-render when entitlements change */}
                     <VehicleLayer
                       key={`vehicles-${activeEntitlements.size}`}
                       vehicleData={filteredVehicleData}
@@ -267,7 +324,6 @@ export function SourceTypes() {
                     />
                   </LayersControl.Overlay>
                 )}
-                {/* TDF Object Layer */}
                 {tdfObjects.length > 0 && (
                   <LayersControl.Overlay name="TDF Objects" checked>
                     <TdfObjectsMapLayer tdfObjects={tdfObjects} />
@@ -285,56 +341,60 @@ export function SourceTypes() {
           </Grid>
         </Grid>
         <CreateDialog open={dialogOpen} onClose={handleDialogClose} />
-        {poppedOutVehicle && (
         
-  <Box className="popped-out-window" sx={{ /* ... your existing styles ... */ }}>
-    <Box className="window-header" sx={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      p: 1,
-      bgcolor: 'primary.main',
-      color: 'white'
-    }}>
-      <Typography variant="subtitle2">Vehicle Details</Typography>
-      <Box>
-        {/* New Fetch Button in Header */}
-        <Button 
-          size="small" 
-          variant="contained" 
-          color="secondary"
-          sx={{ mr: 1, fontSize: '0.7rem', py: 0 }}
-          onClick={() => handleSyncVehicleDetails(poppedOutVehicle.tdfObject.id)}
-        >
-          Sync API
-        </Button>
-        <IconButton size="small" onClick={() => setPoppedOutVehicle(null)} sx={{ color: 'white' }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Box>
-    </Box>
+        {poppedOutVehicle && (
+          <Box 
+            className="popped-out-window" 
+            sx={{ 
+              position: 'fixed', bottom: 20, right: 20, width: 400, 
+              zIndex: 1000, boxShadow: 3, borderRadius: 1, overflow: 'hidden' 
+            }}
+          >
+            <Box className="window-header" sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              p: 1,
+              bgcolor: 'primary.main',
+              color: 'white'
+            }}>
+              <Typography variant="subtitle2">Vehicle Details</Typography>
+              <Box display="flex" alignItems="center">
+                {/* 4. Enhanced Button with Loading State */}
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  color="secondary"
+                  disabled={isSyncing}
+                  startIcon={isSyncing ? <CircularProgress size={14} color="inherit" /> : <SyncIcon sx={{ fontSize: 14 }} />}
+                  sx={{ mr: 1, fontSize: '0.7rem', py: 0, minWidth: '90px' }}
+                  onClick={() => handleSyncVehicleDetails(poppedOutVehicle.tdfObject.id)}
+                >
+                  {isSyncing ? 'Syncing...' : 'Sync API'}
+                </Button>
+                <IconButton size="small" onClick={() => setPoppedOutVehicle(null)} sx={{ color: 'white' }}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </Box>
 
-    <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto', bgcolor: 'background.paper' }}>
-      {/* EDIT CONTENT HERE: 
-          You can add custom Typography or Grid items 
-          that show specific API-fetched fields before the main result.
-      */}
-      <Typography variant="overline" color="textSecondary">
-        System ID: {poppedOutVehicle.tdfObject.id}
-      </Typography>
+            <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto', bgcolor: 'background.paper' }}>
+              <Typography variant="overline" color="textSecondary">
+                System ID: {poppedOutVehicle.tdfObject.id}
+              </Typography>
 
-      <SourceTypeProvider srcType={vehicleSrcType}>
-        <TdfObjectResult
-          key={poppedOutVehicle.tdfObject.id}
-          tdfObjectResponse={poppedOutVehicle}
-          categorizedData={categorizedData || {}}
-          onFlyToClick={handleFlyToClick}
-          onNotesUpdated={(objectId, notes) => console.log(objectId, notes)}
-        />
-      </SourceTypeProvider>
-    </Box>
-  </Box>
-)}
+              <SourceTypeProvider srcType={vehicleSrcType}>
+                <TdfObjectResult
+                  key={poppedOutVehicle.tdfObject.id}
+                  tdfObjectResponse={poppedOutVehicle}
+                  categorizedData={categorizedData || {}}
+                  onFlyToClick={handleFlyToClick}
+                  onNotesUpdated={(objectId, notes) => console.log(objectId, notes)}
+                />
+              </SourceTypeProvider>
+            </Box>
+          </Box>
+        )}
       </SourceTypeProvider>
     </>
   );
