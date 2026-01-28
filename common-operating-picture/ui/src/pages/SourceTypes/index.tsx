@@ -23,9 +23,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import { TdfObjectResult } from './TdfObjectResult';
 import { useEntitlements } from '@/hooks/useEntitlements';
 
-// 1. New Imports for STS Integration
+// S3/STS Integration
 import { stsService } from '@/services/STSService'; 
 import { S3Provider } from '@/types/s3';
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
 export interface VehicleDataItem {
   id: string;
@@ -46,12 +47,18 @@ export interface VehicleDataItem {
   };
 }
 
+// Ensure bucket matches your docker-compose 'cop-demo'
+// Define based on environment
+const isBrowser = typeof window !== 'undefined';
+
 const STS_CONFIG: S3Provider = {
   useSts: true,
-  stsEndpoint: 'http://localhost:7070',
-  roleArn: 'arn:aws:iam::123456789012:role/service-role', // doesnt' matter, just needs to meet formatting standards.
+  // If the browser is calling this, use localhost. 
+  // If a server-side component uses this, it must use 'minio'
+  stsEndpoint: isBrowser ? 'http://localhost:7070' : 'http://minio:9000',
+  roleArn: 'arn:aws:iam::123456789012:role/cop-role',
   region: 'us-east-1',
-  bucket: 'my-vehicle-data-bucket'
+  bucket: 'cop-demo' 
 };
 
 export function SourceTypes() {
@@ -65,8 +72,8 @@ export function SourceTypes() {
   const [vehicleSrcType, setVehicleSrcType] = useState<SrcType>();
   const [poppedOutVehicle, setPoppedOutVehicle] = useState<TdfObjectResponse | null>(null);
   
-  // 2. Loading State for Sync Button
   const [isSyncing, setIsSyncing] = useState(false);
+  const [s3Client, setS3Client] = useState<S3Client | null>(null);
 
   const { getSrcType, queryTdfObjectsLight } = useRpcClient();
   const { tdfObjects, setTdfObjects, activeEntitlements } = useContext(BannerContext);
@@ -74,11 +81,124 @@ export function SourceTypes() {
 
   const vehicleSourceTypeId = "vehicles";
 
+  // Initialize S3 Client via STS with MinIO specifics
+  useEffect(() => {
+    const initS3 = async () => {
+      try {
+        const authDataRaw = sessionStorage.getItem('dsp:cop:user');
+        if (!authDataRaw) return;
+        const authData = JSON.parse(authDataRaw);
+        const oidcToken = authData.idToken || authData.accessToken;
+        
+        if (oidcToken) {
+          const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
+                setS3Client(new S3Client({
+          region: STS_CONFIG.region,
+          endpoint: "http://localhost:7070", 
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: creds.accessKeyId,
+            secretAccessKey: creds.secretAccessKey,
+            sessionToken: creds.sessionToken,
+          },
+        }));
+        }
+      } catch (err) { 
+        console.error("S3/MinIO Init Error", err); 
+      }
+    };
+    initS3();
+  }, []);
+
+  const downloadObject = useCallback(async (key: string): Promise<any> => {
+    if (!s3Client) throw new Error('S3 client not configured');
+    
+    const response = await s3Client.send(new GetObjectCommand({ 
+        Bucket: STS_CONFIG.bucket, 
+        Key: key 
+    }));
+
+    if (!response.Body) throw new Error('No data received');
+    
+    // Modern SDK helper for string conversion
+    const bodyString = await response.Body.transformToString();
+    return JSON.parse(bodyString);
+  }, [s3Client]);
+
+  const fetchVehicles = useCallback(async (id: string) => {
+    try {
+      const tsRange = new TimestampSelector();
+      const dayjsStart = dayjs().subtract(24, 'hour');
+      tsRange.greaterOrEqualTo = Timestamp.fromDate(dayjsStart.toDate());
+      
+      const response = await queryTdfObjectsLight({ srcType: id, tsRange: tsRange });
+      const transformedData: VehicleDataItem[] = response
+        .filter(o => o.geo)
+        .map(o => {
+          const geoJson = JSON.parse(o.geo);
+          const [lng, lat] = geoJson.coordinates;
+          let telemetry = {};
+          try { if (o.metadata && o.metadata !== "null") telemetry = JSON.parse(o.metadata); } catch (e) {}
+          let attributes = {};
+          try { if (o.search && o.search !== "null") attributes = JSON.parse(o.search); } catch (e) {}
+          return { id: o.id, pos: { lat, lng }, rawObject: o, data: { ...telemetry, ...attributes } };
+        });
+      setVehicleData(transformedData);
+    } catch (error) { 
+      setVehicleData([]); 
+    }
+  }, [queryTdfObjectsLight]);
+
+  const handleSyncVehicleDetails = async (vehicleId: string) => {
+    setIsSyncing(true);
+    try {
+      const authDataRaw = sessionStorage.getItem('dsp:cop:user');
+      if (!authDataRaw) throw new Error("No session");
+      const authData = JSON.parse(authDataRaw);
+      const oidcToken = authData.idToken || authData.accessToken;
+      
+      const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
+
+      let s3Payload = null;
+      try {
+        s3Payload = await downloadObject(`sync-configs/${vehicleId}.json`);
+        console.log("Retrieved MinIO sync configuration:", s3Payload);
+      } catch (e) {
+        console.warn("No sync config found in MinIO, proceeding with default.");
+      }
+
+      const response = await fetch(`/api/vehicles/${vehicleId}/sync`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Amz-Security-Token': creds.sessionToken,
+          'X-Amz-Access-Key': creds.accessKeyId,
+          'X-Amz-Secret-Key': creds.secretAccessKey,
+        },
+        body: s3Payload ? JSON.stringify({ config: s3Payload }) : undefined
+      });
+
+      if (!response.ok) throw new Error(`Backend Sync Failed: ${response.statusText}`);
+      
+      await fetchVehicles(vehicleSourceTypeId);
+      alert("Sync Successful");
+    } catch (error: any) { 
+  // This unmasks the "Deserialization error"
+  if (error.$response) {
+    const rawBody = await error.$response.body.transformToString();
+    console.error("DEBUG: Raw Server Response:", rawBody);
+  }
+  console.error(error);
+  alert(error.message); 
+} finally { 
+      setIsSyncing(false); 
+    }
+  };
+
   const filteredVehicleData = useMemo(() => {
     if (!activeEntitlements || activeEntitlements.size === 0 || activeEntitlements.has("NoAccess")) {
       return vehicleData;
     }
-
     return vehicleData.filter(vehicle => {
       const classification = vehicle.data?.attrClassification;
       if (!classification) return true;
@@ -92,7 +212,6 @@ export function SourceTypes() {
       const { srcType } = await getSrcType({ srcType: id });
       setSrcType(srcType);
     } catch (err) {
-      console.warn(`'${id}' is not a valid source type.`);
       setSrcType(undefined);
       setSearchParams(new URLSearchParams());
     }
@@ -101,9 +220,7 @@ export function SourceTypes() {
   const handleSrcTypeIdChange = useCallback((id: string) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('type', id);
-    if (id !== srcTypeId) {
-      newSearchParams.delete('q');
-    }
+    if (id !== srcTypeId) newSearchParams.delete('q');
     setSearchParams(newSearchParams);
   }, [searchParams, srcTypeId, setSearchParams]);
 
@@ -129,57 +246,13 @@ export function SourceTypes() {
     console.log("Selected vehicle:", vehicle);
   }, []);
 
-  const fetchVehicles = useCallback(async (id: string) => {
-    try {
-      const tsRange = new TimestampSelector();
-      const dayjsStart = dayjs().subtract(24, 'hour');
-      tsRange.greaterOrEqualTo = Timestamp.fromDate(dayjsStart.toDate());
-
-      const response = await queryTdfObjectsLight({
-        srcType: id,
-        tsRange: tsRange,
-      });
-
-      const transformedData: VehicleDataItem[] = response
-        .filter(o => o.geo)
-        .map(o => {
-          const geoJson = JSON.parse(o.geo);
-          const [lng, lat] = geoJson.coordinates;
-
-          let telemetry = {};
-          try {
-            if (o.metadata && o.metadata !== "null") telemetry = JSON.parse(o.metadata);
-          } catch (e) { console.error("Metadata parse error", e); }
-
-          let attributes = {};
-          try {
-            if (o.search && o.search !== "null") attributes = JSON.parse(o.search);
-          } catch (e) { console.error("Search field parse error", e); }
-
-          return {
-            id: o.id,
-            pos: { lat, lng },
-            rawObject: o,
-            data: { ...telemetry, ...attributes },
-          };
-        });
-
-      setVehicleData(transformedData);
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
-      setVehicleData([]);
-    }
-  }, [queryTdfObjectsLight]);
-
   useEffect(() => {
     if (vehicleSrcType) return;
     const getVehicleSchema = async () => {
       try {
         const { srcType } = await getSrcType({ srcType: vehicleSourceTypeId });
         setVehicleSrcType(srcType);
-      } catch (err) {
-        console.error("Failed to fetch vehicle source type schema", err);
-      }
+      } catch (err) {}
     };
     getVehicleSchema();
   }, [getSrcType, vehicleSrcType]);
@@ -189,111 +262,24 @@ export function SourceTypes() {
   }, [fetchVehicles]);
 
   useEffect(() => {
-    const REFRESH_INTERVAL_MS = 5000;
-    const intervalId = setInterval(() => {
-      fetchVehicles(vehicleSourceTypeId);
-    }, REFRESH_INTERVAL_MS);
+    const intervalId = setInterval(() => fetchVehicles(vehicleSourceTypeId), 5000);
     return () => clearInterval(intervalId);
   }, [fetchVehicles]);
 
   useEffect(() => {
     const type = searchParams.get('type');
-    const select = searchParams.get('select');
     const mode = searchParams.get('mode');
-
-    setSelectable(select !== 'false');
-
-    if (!type) {
-      setSrcType(undefined);
-      setSrcTypeId(null);
-      return;
-    }
-
+    setSelectable(searchParams.get('select') !== 'false');
+    if (!type) { setSrcType(undefined); setSrcTypeId(null); return; }
     if (type !== srcTypeId) {
       setSrcTypeId(type);
       setTdfObjects([]);
       fetchSrcType(type);
     }
-
-    if (mode === 'create') {
-      setDialogOpen(true);
-    }
-    // neeneed to setup s3 client stuffs here 
+    if (mode === 'create') setDialogOpen(true);
   }, [searchParams, fetchSrcType, srcTypeId, setTdfObjects]);
 
-  // 3. Updated Sync Handler with STS Exchange & Loading State
- const handleSyncVehicleDetails = async (vehicleId: string) => {
-  setIsSyncing(true);
-  try {
-    // 1. Retrieve the session data from Session Storage
-    const authDataRaw = sessionStorage.getItem('dsp:cop:user');
-    
-    if (!authDataRaw) {
-      throw new Error("Session data 'dsp:cop:user' not found. Please log in again.");
-    }
-
-    // 2. Parse the stringified JSON
-    let authData;
-    try {
-      authData = JSON.parse(authDataRaw);
-    } catch (e) {
-      throw new Error("Failed to parse session data. Storage may be corrupted.");
-    }
-
-    // 3. Extract the token. 
-    const oidcToken = authData.idToken || authData.accessToken;
-    console.log("Token Issuer:", JSON.parse(atob(oidcToken.split('.')[1])).iss);
-
-    if (!oidcToken) {
-      throw new Error("No token found within the session object. Please re-authenticate.");
-    }
-
-    // 4. Exchange the OIDC token for AWS Credentials via STS
-    const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
-
-    console.log('Assumed AWS credentials:', creds);
-
-    // 5. Perform the authorized backend sync
-
-    const response = await fetch(`/api/vehicles/${vehicleId}/sync`, { 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Amz-Security-Token': creds.sessionToken,
-        'X-Amz-Access-Key': creds.accessKeyId,
-        'X-Amz-Secret-Key': creds.secretAccessKey,
-      }
-    });
-
-    // Check if the response is 204 (No Content)
-    if (response.status === 204) {
-      console.log("Sync successful, no content returned.");
-      // No need to handle response body, but you can refresh data if needed
-      await fetchVehicles(vehicleSourceTypeId);
-    } else if (response.ok) {
-      // Handle other successful responses (e.g., 200 or 201)
-      const updatedData = await response.json();
-      console.log("Sync Successful:", updatedData);
-      // Refresh data after successful sync
-      await fetchVehicles(vehicleSourceTypeId);
-    } else {
-      // Handle error response
-      const errorDetail = await response.text();
-      console.error("Sync failed:", errorDetail);
-      throw new Error(`Sync failed (${response.status}): ${errorDetail}`);
-    }
-  } catch (error: any) {
-    // Log the full error for debugging and alert the user
-    console.error("Vehicle Sync Error:", error);
-    alert(error.message || "An unexpected error occurred during sync.");
-  } finally {
-    setIsSyncing(false);
-  }
-};
-
-  const searchResultsTdfObjects = srcTypeId === vehicleSourceTypeId
-  ? [] 
-  : tdfObjects; 
+  const searchResultsTdfObjects = srcTypeId === vehicleSourceTypeId ? [] : tdfObjects; 
 
   return (
     <>
@@ -308,24 +294,11 @@ export function SourceTypes() {
                 <LayersControl.BaseLayer checked name="Street">
                   <TileLayer
                     url={config.tileServerUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution='&copy; OpenStreetMap contributors'
                   />
                 </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="Satellite">
-                  <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    attribution='&copy; <a href="https://www.esri.com/">Esri</a> | Earthstar Geographics'
-                  />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="Dark">
-                  <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-                  />
-                </LayersControl.BaseLayer>
-
                 {filteredVehicleData.length > 0 && (
-                  <LayersControl.Overlay name="Planes" checked>
+                  <LayersControl.Overlay name="Vehicles" checked>
                     <VehicleLayer
                       key={`vehicles-${activeEntitlements.size}`}
                       vehicleData={filteredVehicleData}
@@ -350,35 +323,30 @@ export function SourceTypes() {
             <SearchResults tdfObjects={searchResultsTdfObjects} onFlyToClick={handleFlyToClick} />
           </Grid>
         </Grid>
+        
         <CreateDialog open={dialogOpen} onClose={handleDialogClose} />
         
         {poppedOutVehicle && (
           <Box 
-            className="popped-out-window" 
             sx={{ 
               position: 'fixed', bottom: 20, right: 20, width: 400, 
               zIndex: 1000, boxShadow: 3, borderRadius: 1, overflow: 'hidden' 
             }}
           >
-            <Box className="window-header" sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              p: 1,
-              bgcolor: 'primary.main',
-              color: 'white'
+            <Box sx={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              p: 1, bgcolor: 'primary.main', color: 'white'
             }}>
               <Typography variant="subtitle2">Vehicle Details</Typography>
               <Box display="flex" alignItems="center">
-                {/* 4. Enhanced Button with Loading State */}
                 <Button 
                   size="small" 
                   variant="contained" 
                   color="secondary"
                   disabled={isSyncing}
+                  onClick={() => handleSyncVehicleDetails(poppedOutVehicle.tdfObject.id)}
                   startIcon={isSyncing ? <CircularProgress size={14} color="inherit" /> : <SyncIcon sx={{ fontSize: 14 }} />}
                   sx={{ mr: 1, fontSize: '0.7rem', py: 0, minWidth: '90px' }}
-                  onClick={() => handleSyncVehicleDetails(poppedOutVehicle.tdfObject.id)}
                 >
                   {isSyncing ? 'Syncing...' : 'Sync API'}
                 </Button>
