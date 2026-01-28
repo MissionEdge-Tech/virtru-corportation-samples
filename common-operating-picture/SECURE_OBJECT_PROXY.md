@@ -30,6 +30,7 @@ mc alias set s4 http://s4-test.localhost:7070 "user" "replaceme" --api "S3v4" --
 ```
 
 Get Bearer Token
+AUTH_TOKEN=$(./get_jwt.sh --quiet)
 ```shell
 AUTH_TOKEN=$(curl -d 'client_id=opentdf' -d 'client_secret=secret' -d 'grant_type=client_credentials' 'https://local-dsp.virtru.com:8443/auth/realms/opentdf/protocol/openid-connect/token' | jq -r .access_token)
 ```
@@ -44,7 +45,7 @@ Sample Copy Object, explicitly specifying data attributes. Note: Write input and
 echo "sample" > sample.txt
 
 mc -H "Authorization: Bearer ${AUTH_TOKEN}" cp \
-  --attr "Tdf-Data-Attribute-0=https://demo.com/attr/classification/value/topsecret;Tdf-Data-Attribute-1=https://demo.com/attr/needtoknow/value/aaa" \
+  --attr "Tdf-Data-Attribute-0=https://demo.com/attr/classification/value/topsecret;Tdf-Data-Attribute-1=https://demo.com/attr/needtoknow/value/bbb" \
   sample.txt s4/cop-demo
 ```
 

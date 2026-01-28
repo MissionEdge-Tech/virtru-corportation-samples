@@ -1,18 +1,23 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import { Typography, Box, CircularProgress, IconButton, Tooltip } from "@mui/material";
+import { Typography, Box, CircularProgress, IconButton, Tooltip, Button } from "@mui/material";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import FlightIcon from '@mui/icons-material/Flight';
+import SyncIcon from '@mui/icons-material/Sync';
+import BadgeIcon from '@mui/icons-material/Badge';
+import BusinessIcon from '@mui/icons-material/Business';
 import { mapStringToColor } from "@/pages/SourceTypes/helpers/markers";
 import { useRpcClient } from '@/hooks/useRpcClient';
+import { useAuth } from '@/hooks/useAuth';
 import { TdfObject } from '@/proto/tdf_object/v1/tdf_object_pb';
 import { ObjectBanner } from '@/components/ObjectBanner';
 import { extractValues } from '@/contexts/BannerContext';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { fetchManifestFromS4, ManifestVehicleInfo } from '@/services/s4Service';
 
 // Interfaces
 interface Coordinate {
@@ -162,9 +167,15 @@ const renderDetail = (Icon: React.ElementType, label: string, value: string | un
 // VehicleMarker Component
 export function VehicleMarker({ markerId, Position, data, rawObject, onClick, onPopOut }: VehicleProps) {
   const { transformTdfObject } = useRpcClient();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [decryptedData, setDecryptedData] = useState<any>(null); // State for decrypted results
   const [currentPos, setCurrentPos] = useState(Position);
+  
+  // State for S3 synced vehicle info
+  const [vehicleInfo, setVehicleInfo] = useState<ManifestVehicleInfo | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Combine static data with decrypted data (decrypted takes priority)
   const displayData = useMemo(() => ({
@@ -270,6 +281,35 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick, on
   onPopOut(tdfResponse);
 };
 
+  // Handler for Sync with S3 button
+  const handleSyncWithS3 = async () => {
+    // Get manifest URI from metadata
+    const manifestUri = displayData?.manifest;
+    
+    if (!manifestUri) {
+      setSyncError('No manifest URI available');
+      return;
+    }
+
+    if (!user?.accessToken) {
+      setSyncError('Not authenticated');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncError(null);
+
+    try {
+      const info = await fetchManifestFromS4(user.accessToken, manifestUri);
+      setVehicleInfo(info);
+    } catch (err) {
+      console.error('Failed to sync with S3:', err);
+      setSyncError(err instanceof Error ? err.message : 'Sync failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const icon = RotatableIcon({
     color: getClassificationColor(displayData?.attrClassification),
     iconSize: ICON_PROPS.size,
@@ -371,6 +411,51 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick, on
             {renderDetail(AltRouteIcon, "Origin: ", displayData?.origin)}
             {renderDetail(AltRouteIcon, "Destination: ", displayData?.destination)}
             {renderDetail(MyLocationIcon, "Coordinates: ", `${currentPos.lat.toFixed(4)}, ${currentPos.lng.toFixed(4)}`)}
+          </Box>
+
+          {/* Vehicle Info Section - Synced from S3 */}
+          <Box className="tooltip-section">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="body2" className="section-title" sx={{ mb: 0 }}>Vehicle Info</Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={isSyncing ? <CircularProgress size={14} /> : <SyncIcon />}
+                onClick={handleSyncWithS3}
+                disabled={isSyncing || !displayData?.manifest}
+                sx={{
+                  fontSize: '0.7rem',
+                  padding: '2px 8px',
+                  minWidth: 'auto',
+                  textTransform: 'none',
+                }}
+              >
+                {isSyncing ? 'Syncing...' : 'Sync with S3'}
+              </Button>
+            </Box>
+            
+            {syncError && (
+              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>
+                {syncError}
+              </Typography>
+            )}
+            
+            {!displayData?.manifest && (
+              <Typography variant="caption" color="textSecondary" sx={{ display: 'block', fontStyle: 'italic' }}>
+                No manifest available
+              </Typography>
+            )}
+            
+            {vehicleInfo ? (
+              <>
+                {renderDetail(BadgeIcon, "Registration: ", vehicleInfo.registration || "N/A")}
+                {renderDetail(BusinessIcon, "Operator: ", vehicleInfo.operator || "N/A")}
+              </>
+            ) : displayData?.manifest && !isSyncing && !syncError ? (
+              <Typography variant="caption" color="textSecondary" sx={{ display: 'block', fontStyle: 'italic' }}>
+                Click "Sync with S3" to load vehicle details
+              </Typography>
+            ) : null}
           </Box>
 
           {isLoading && (

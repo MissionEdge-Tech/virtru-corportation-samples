@@ -1,60 +1,51 @@
 #!/bin/bash
 
-# Script to get JWT token from Keycloak using username/password authentication
-# Default values can be overridden with environment variables
-# Use --quiet flag to output only the token (for use in scripts)
-
+# Use unique internal names to avoid conflicts with system variables like $USERNAME
 QUIET_MODE=false
 if [ "$1" = "--quiet" ]; then
     QUIET_MODE=true
 fi
 
-KEYCLOAK_URL="${KEYCLOAK_URL:-https://local-dsp.virtru.com:8443/auth}"
-REALM="${REALM:-opentdf}"
-CLIENT_ID="${CLIENT_ID:-secure-object-proxy-test}"
-CLIENT_SECRET="${CLIENT_SECRET:-secret}"
-USERNAME="${USERNAME:-top-secret-gbr-bbb}"
-PASSWORD="${PASSWORD:-testuser123}"
+# Configuration - Renamed internal vars to avoid $USERNAME conflict
+KC_URL="${KEYCLOAK_URL:-https://local-dsp.virtru.com:8443/auth}"
+KC_REALM="${REALM:-opentdf}"
+KC_CLIENT_ID="${CLIENT_ID:-secure-object-proxy-test}"
+KC_CLIENT_SECRET="${CLIENT_SECRET:-secret}"
+KC_USER="${K_USER:-secret-usa-aaa}" # Renamed from USERNAME to avoid 'harshil'
+KC_PASS="${PASSWORD:-testuser123}"
 
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 if [ "$QUIET_MODE" = false ]; then
     echo "Requesting JWT token from Keycloak..."
-    echo "  URL: $KEYCLOAK_URL"
-    echo "  Realm: $REALM"
-    echo "  Client ID: $CLIENT_ID"
-    echo "  Username: $USERNAME"
+    echo "  URL: $KC_URL"
+    echo "  Username: $KC_USER"
     echo ""
 fi
 
-# Make the token request
-RESPONSE=$(curl -s -X POST \
-  "${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token" \
+# Make the token request (-k ignores SSL errors for local dev)
+RESPONSE=$(curl -k -s -X POST \
+  "${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=${CLIENT_ID}" \
-  -d "client_secret=${CLIENT_SECRET}" \
-  -d "username=${USERNAME}" \
-  -d "password=${PASSWORD}" \
+  -d "client_id=${KC_CLIENT_ID}" \
+  -d "client_secret=${KC_CLIENT_SECRET}" \
+  -d "username=${KC_USER}" \
+  -d "password=${KC_PASS}" \
   -d "grant_type=password")
 
-# Check if request was successful
-if [ $? -ne 0 ]; then
-    if [ "$QUIET_MODE" = false ]; then
-        echo -e "${RED}Error: Failed to connect to Keycloak${NC}" >&2
-    fi
-    exit 1
-fi
-
-# Extract access token
-ACCESS_TOKEN=$(echo "$RESPONSE" | grep -o '"access_token":"[^"]*' | sed 's/"access_token":"//')
+# Extract access token using a slightly more robust regex
+ACCESS_TOKEN=$(echo "$RESPONSE" | grep -oP '(?<="access_token":")[^"]*')
 
 if [ -z "$ACCESS_TOKEN" ]; then
     if [ "$QUIET_MODE" = false ]; then
         echo -e "${RED}Error: Failed to obtain access token${NC}" >&2
         echo "Response: $RESPONSE" >&2
+    else
+        # In quiet mode, still send error to stderr so the variable doesn't fill with garbage
+        echo "Error: Keycloak returned: $RESPONSE" >&2
     fi
     exit 1
 fi
