@@ -218,70 +218,78 @@ export function SourceTypes() {
     if (mode === 'create') {
       setDialogOpen(true);
     }
+    // neeneed to setup s3 client stuffs here 
   }, [searchParams, fetchSrcType, srcTypeId, setTdfObjects]);
 
   // 3. Updated Sync Handler with STS Exchange & Loading State
  const handleSyncVehicleDetails = async (vehicleId: string) => {
-    setIsSyncing(true);
-    try {
-      // 1. Retrieve the session data from Session Storage
-      const authDataRaw = sessionStorage.getItem('dsp:cop:user');
-      
-      if (!authDataRaw) {
-        throw new Error("Session data 'dsp:cop:user' not found. Please log in again.");
-      }
-
-      // 2. Parse the stringified JSON
-      let authData;
-      try {
-        authData = JSON.parse(authDataRaw);
-      } catch (e) {
-        throw new Error("Failed to parse session data. Storage may be corrupted.");
-      }
-
-      // 3. Extract the token. 
-      // AWS STS usually prefers the idToken, but we'll fall back to accessToken
-      const oidcToken = authData.idToken || authData.accessToken;
-      console.log("Token Issuer:", JSON.parse(atob(oidcToken.split('.')[1])).iss);
-
-      if (!oidcToken) {
-        throw new Error("No token found within the session object. Please re-authenticate.");
-      }
-
-      // 4. Exchange the OIDC token for AWS Credentials via STS
-      const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
-
-      // 5. Perform the authorized backend sync
-      const response = await fetch(`/api/vehicles/${vehicleId}/sync`, { 
-        // this seems to be crashing for no response... 
-        // idk if this is even a valid call atm?
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Amz-Security-Token': creds.sessionToken,
-          'X-Amz-Access-Key': creds.accessKeyId,
-        }
-      });
-
-      if (!response.ok) {
-        const errorDetail = await response.text();
-        throw new Error(`Sync failed (${response.status}): ${errorDetail}`);
-      }
-
-      const updatedData = await response.json();
-      console.log("Vehicle Sync Successful:", updatedData);
-      
-      // 6. Refresh the local vehicle list to show updated data
-      await fetchVehicles(vehicleSourceTypeId); 
-
-    } catch (error: any) {
-      // Log the full error for debugging and alert the user
-      console.error("Vehicle Sync Error:", error);
-      alert(error.message || "An unexpected error occurred during sync.");
-    } finally {
-      setIsSyncing(false);
+  setIsSyncing(true);
+  try {
+    // 1. Retrieve the session data from Session Storage
+    const authDataRaw = sessionStorage.getItem('dsp:cop:user');
+    
+    if (!authDataRaw) {
+      throw new Error("Session data 'dsp:cop:user' not found. Please log in again.");
     }
-  };
+
+    // 2. Parse the stringified JSON
+    let authData;
+    try {
+      authData = JSON.parse(authDataRaw);
+    } catch (e) {
+      throw new Error("Failed to parse session data. Storage may be corrupted.");
+    }
+
+    // 3. Extract the token. 
+    const oidcToken = authData.idToken || authData.accessToken;
+    console.log("Token Issuer:", JSON.parse(atob(oidcToken.split('.')[1])).iss);
+
+    if (!oidcToken) {
+      throw new Error("No token found within the session object. Please re-authenticate.");
+    }
+
+    // 4. Exchange the OIDC token for AWS Credentials via STS
+    const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
+
+    console.log('Assumed AWS credentials:', creds);
+
+    // 5. Perform the authorized backend sync
+
+    const response = await fetch(`/api/vehicles/${vehicleId}/sync`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Amz-Security-Token': creds.sessionToken,
+        'X-Amz-Access-Key': creds.accessKeyId,
+        'X-Amz-Secret-Key': creds.secretAccessKey,
+      }
+    });
+
+    // Check if the response is 204 (No Content)
+    if (response.status === 204) {
+      console.log("Sync successful, no content returned.");
+      // No need to handle response body, but you can refresh data if needed
+      await fetchVehicles(vehicleSourceTypeId);
+    } else if (response.ok) {
+      // Handle other successful responses (e.g., 200 or 201)
+      const updatedData = await response.json();
+      console.log("Sync Successful:", updatedData);
+      // Refresh data after successful sync
+      await fetchVehicles(vehicleSourceTypeId);
+    } else {
+      // Handle error response
+      const errorDetail = await response.text();
+      console.error("Sync failed:", errorDetail);
+      throw new Error(`Sync failed (${response.status}): ${errorDetail}`);
+    }
+  } catch (error: any) {
+    // Log the full error for debugging and alert the user
+    console.error("Vehicle Sync Error:", error);
+    alert(error.message || "An unexpected error occurred during sync.");
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   const searchResultsTdfObjects = srcTypeId === vehicleSourceTypeId
   ? [] 
