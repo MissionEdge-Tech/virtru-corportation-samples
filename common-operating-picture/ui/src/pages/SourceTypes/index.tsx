@@ -46,13 +46,12 @@ export interface VehicleDataItem {
   };
 }
 
-// Configuration for STS - Usually moved to a config file
 const STS_CONFIG: S3Provider = {
   useSts: true,
-  stsEndpoint: 'https://sts.amazonaws.com',
-  roleArn: 'arn:aws:iam::123456789012:role/service-role', 
+  stsEndpoint: 'http://localhost:7070',
+  roleArn: 'arn:aws:iam::123456789012:role/service-role', // doesnt' matter, just needs to meet formatting standards.
   region: 'us-east-1',
-  bucket: 'my-vehicle-data-bucket', // Add this line
+  bucket: 'my-vehicle-data-bucket'
 };
 
 export function SourceTypes() {
@@ -243,6 +242,7 @@ export function SourceTypes() {
       // 3. Extract the token. 
       // AWS STS usually prefers the idToken, but we'll fall back to accessToken
       const oidcToken = authData.idToken || authData.accessToken;
+      console.log("Token Issuer:", JSON.parse(atob(oidcToken.split('.')[1])).iss);
 
       if (!oidcToken) {
         throw new Error("No token found within the session object. Please re-authenticate.");
@@ -252,7 +252,9 @@ export function SourceTypes() {
       const creds = await stsService.assumeRoleWithWebIdentity(STS_CONFIG, oidcToken);
 
       // 5. Perform the authorized backend sync
-      const response = await fetch(`/api/vehicles/${vehicleId}/sync`, {
+      const response = await fetch(`/api/vehicles/${vehicleId}/sync`, { 
+        // this seems to be crashing for no response... 
+        // idk if this is even a valid call atm?
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
