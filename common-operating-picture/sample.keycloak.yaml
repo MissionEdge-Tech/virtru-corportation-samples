@@ -193,6 +193,40 @@ realms:
             - BBB
           clearance:
             - TS
+      - username: top-secret-gbr-aaa
+        enabled: true
+        firstName: Bob
+        lastName: TopSecretGBR
+        email: aaa@topsecret.gbr
+        realmRoles:
+          - opentdf-standard
+        credentials:
+          - value: testuser123
+            type: password
+        attributes:
+          nationality:
+            - GBR
+          needToKnow:
+            - AAA
+          clearance:
+            - TS
+      - username: top-secret-usa-aaa
+        enabled: true
+        firstName: Tom 
+        lastName: TopSecretUSA
+        email: aaa@topsecret.usa
+        realmRoles:
+          - opentdf-standard
+        credentials:
+          - value: testuser123
+            type: password
+        attributes:
+          nationality:
+            - USA
+          needToKnow:
+            - AAA
+          clearance:
+            - TS
       #  With Keycloak idP attributes below, the user below is entitled through Subject Mappings/Subject Condition Sets to DSP policy Attribute Values:
       # | Attribute Definition FQN              | Entitled To Forms/Data of Values                  | Attribute Rule Type            |
       # |---------------------------------------|---------------------------------------------------|--------------------------------|

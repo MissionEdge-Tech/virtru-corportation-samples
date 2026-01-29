@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # --- Configuration (Matches your Seed Script) ---
 KC_URL = os.getenv("KEYCLOAK_URL", "https://local-dsp.virtru.com:8443/auth")
 KC_REALM = os.getenv("REALM", "opentdf")
-KC_USER = os.getenv("KC_USER", "top-secret-gbr-bbb")
+KC_USER = os.getenv("KC_USER", "top-secret-gbr-aaa")
 KC_PASS = os.getenv("PASSWORD", "testuser123")
 CLIENT_ID = 'secure-object-proxy-test'
 CLIENT_SECRET = 'secret'

@@ -18,7 +18,7 @@ server:
 backend:
   platformUrl: https://local-dsp.virtru.com:8080/
   oidcUrl: https://local-dsp.virtru.com:8443/auth/realms/opentdf/protocol/openid-connect/token
-  defaultAttrs: [https://demo.com/attr/needtoknow/value/aaa,"https://demo.com/attr/classification/value/topsecret"]
+  defaultAttrs: []
   insecure: true
   provider:
     s4-test2:

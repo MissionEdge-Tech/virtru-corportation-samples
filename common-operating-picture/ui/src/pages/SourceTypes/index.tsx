@@ -174,7 +174,7 @@ export function SourceTypes() {
   }, [fetchVehicles]);
 
   useEffect(() => {
-    const REFRESH_INTERVAL_MS = 5000;
+    const REFRESH_INTERVAL_MS = 1000;
     const intervalId = setInterval(() => {
       fetchVehicles(vehicleSourceTypeId);
     }, REFRESH_INTERVAL_MS);
