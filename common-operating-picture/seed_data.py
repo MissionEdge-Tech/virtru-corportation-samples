@@ -31,8 +31,8 @@ TOKEN_URL = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/token"
 # --- DB Configs ---
 DB_NAME, DB_USER, DB_PASSWORD = "postgres", "postgres", "changeme"
 DB_HOST, DB_PORT = "localhost", 15432
-NUM_RECORDS = 5
-BATCH_SIZE = 1
+NUM_RECORDS = 50
+BATCH_SIZE = 5
 
 # --- S4 / S3 Configs ---
 S4_STS_ENDPOINT = "http://localhost:7070"

@@ -157,7 +157,7 @@ export function ManifestDisplay({ manifest, compact = false }: ManifestDisplayPr
       }}>
         <Typography variant="body1" sx={{ fontWeight: 700, letterSpacing: 1 }}>
           {manifest.documentControl.classification}
-          {manifest.documentControl.caveats.length > 0 && ` // ${manifest.documentControl.caveats.join(' / ')}`}
+          {/* {manifest.documentControl.caveats.length > 0 && ` // ${manifest.documentControl.caveats.join(' / ')}`} */}
         </Typography>
       </Box>
 
@@ -280,18 +280,7 @@ export function ManifestDisplay({ manifest, compact = false }: ManifestDisplayPr
       </ManifestSection>
 
       {/* Bottom Classification Banner */}
-      <Box sx={{ 
-        bgcolor: getClassificationBgColor(manifest.documentControl.classification), 
-        color: '#fff', 
-        p: 1, 
-        borderRadius: 1, 
-        mt: 1.5, 
-        textAlign: 'center', 
-      }}>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          {manifest.documentControl.classification}
-        </Typography>
-      </Box>
+
     </Box>
   );
 }
