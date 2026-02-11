@@ -81,7 +81,7 @@ SENSOR_TYPES = ["SAR", "EO/IR", "MTI", "GMTI", "ESM", "COMMS", "RADAR", "LIDAR"]
 EMISSION_CONTROL = ["EMCON ALPHA", "EMCON BRAVO", "EMCON CHARLIE", "EMCON DELTA"]
 
 # --- SQL Queries ---
-DELETE_SQL = "DELETE FROM tdf_objects WHERE src_type = %s"
+DELETE_SQL = "DELETE FROM tdf_objects"
 INSERT_SQL = """
 INSERT INTO tdf_objects (
     id,
@@ -346,7 +346,7 @@ def generate_tdf_records(count, sdk):
         manifest_key = f"manifests/{random_id}.json.tdf"
         
         manifest_attributes = [
-            classification_attr,
+            f"https://demo.com/attr/classification/value/topsecret", #adding this to make all topsecret
             NEEDTOKNOW_ATTR
         ]
         

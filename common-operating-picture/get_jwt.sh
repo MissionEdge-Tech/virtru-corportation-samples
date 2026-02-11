@@ -11,7 +11,7 @@ KC_URL="${KEYCLOAK_URL:-https://local-dsp.virtru.com:8443/auth}"
 KC_REALM="${REALM:-opentdf}"
 KC_CLIENT_ID="${CLIENT_ID:-secure-object-proxy-test}"
 KC_CLIENT_SECRET="${CLIENT_SECRET:-secret}"
-KC_USER="${K_USER:-secret-usa-aaa}" # Renamed from USERNAME to avoid 'harshil'
+KC_USER="${K_USER:-secret-usa-aaa}" 
 KC_PASS="${PASSWORD:-testuser123}"
 
 # Colors for output
