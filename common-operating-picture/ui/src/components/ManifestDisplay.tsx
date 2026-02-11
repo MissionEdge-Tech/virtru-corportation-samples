@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Typography, Box, CircularProgress, Button,
   Accordion, AccordionSummary, AccordionDetails, Chip, Divider,
@@ -298,6 +298,10 @@ export function ManifestLoader({ manifestUri, manifest, onManifestLoaded, compac
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setSyncError(null);
+  }, [manifestUri, manifest]);
+
   const handleSyncWithS3 = async () => {
     if (!manifestUri) {
       setSyncError('No manifest URI available');
@@ -314,6 +318,7 @@ export function ManifestLoader({ manifestUri, manifest, onManifestLoaded, compac
     try {
       const data = await fetchManifestFromS4(user.accessToken, manifestUri);
       onManifestLoaded(data);
+      setSyncError(null);
     } catch (err: any) {
       console.error('Failed to sync with S3:', err);
       if (err.message === 'ENTITLEMENT_DENIED') {
