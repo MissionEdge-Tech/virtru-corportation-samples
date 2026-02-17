@@ -31,7 +31,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.4 // indirect
-	github.com/go-chi/chi/v5 v5.2.4 // indirect
+	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-openapi/swag/cmdutils v0.25.4 // indirect
 	github.com/go-openapi/swag/conv v0.25.4 // indirect
 	github.com/go-openapi/swag/fileutils v0.25.4 // indirect
@@ -43,9 +43,12 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.4 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.4 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
+	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
 	github.com/miekg/dns v1.1.61 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
-	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
+	github.com/segmentio/ksuid v1.0.4 // indirect
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
+	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.38.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -216,9 +219,9 @@ require (
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/sigstore/fulcio v1.6.6 // indirect
-	github.com/sigstore/protobuf-specs v0.5.0 // indirect
-	github.com/sigstore/rekor v1.5.0 // indirect
-	github.com/sigstore/sigstore v1.10.4 // indirect
+	github.com/sigstore/protobuf-specs v0.4.0 // indirect
+	github.com/sigstore/rekor v1.3.9 // indirect
+	github.com/sigstore/sigstore v1.8.15 // indirect
 	github.com/sigstore/sigstore-go v0.7.0 // indirect
 	github.com/sigstore/timestamp-authority v1.2.4 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
