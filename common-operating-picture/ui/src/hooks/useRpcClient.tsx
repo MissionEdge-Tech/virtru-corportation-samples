@@ -1,5 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { TdfObject, QueryTdfObjectsRequest, UpdateTdfObjectRequest, UpdateTdfObjectResponse } from '@/proto/tdf_object/v1/tdf_object_pb';
+import { 
+  TdfObject, 
+  QueryTdfObjectsRequest, 
+  UpdateTdfObjectRequest, 
+  UpdateTdfObjectResponse,
+  RunPythonScriptRequest,
+  RunPythonScriptResponse 
+} from '@/proto/tdf_object/v1/tdf_object_pb';
 import { QueryTdfNotesRequest, TdfNote } from '@/proto/tdf_object/v1/tdf_note_pb';
 import { PartialMessage } from '@bufbuild/protobuf';
 import { crpcClient, drpcClient } from '@/api/connectRpcClient';
@@ -199,6 +206,8 @@ export function useRpcClient() {
     getSrcType: (req: any) => crpcClient.getSrcType(req, authHeader),
     listSrcTypes: (req: any) => crpcClient.listSrcTypes(req, authHeader),
     streamTdfObjects: (req: any) => crpcClient.streamTdfObjects(req, authHeader),
+    runPythonScript: (req: PartialMessage<RunPythonScriptRequest>): Promise<RunPythonScriptResponse> => 
+      crpcClient.runPythonScript(req, authHeader),
   }), [
     queryNotes, 
     updateTdfObject, 

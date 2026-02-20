@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -224,12 +225,12 @@ func (s *TdfObjectServer) CreateTdfObject(
 	var respErr *connect.Error
 	s.DBQueries.CreateTdfObjects(ctx, []db.CreateTdfObjectsParams{
 		{
-			SrcType: strings.ToLower(req.Msg.SrcType),
-			Ts:      ts,
-			Geo:     geo,
-			Search:  search,
+			SrcType:  strings.ToLower(req.Msg.SrcType),
+			Ts:       ts,
+			Geo:      geo,
+			Search:   search,
 			Metadata: metadata,
-			TdfBlob: req.Msg.TdfBlob,
+			TdfBlob:  req.Msg.TdfBlob,
 		},
 	}).QueryRow(func(i int, id uuid.UUID, err error) {
 		if err != nil {
@@ -456,9 +457,9 @@ func (s *TdfObjectServer) QueryTdfObjects(
 		}
 
 		prunedAttributes := map[string]interface{}{
-		"attrRelTo":          searchAttributes.RelTo,
-		"attrNeedToKnow":     searchAttributes.NeedToKnow,
-		"attrClassification": searchAttributes.Classification,
+			"attrRelTo":          searchAttributes.RelTo,
+			"attrNeedToKnow":     searchAttributes.NeedToKnow,
+			"attrClassification": searchAttributes.Classification,
 		}
 
 		prunedJSON, err := json.Marshal(prunedAttributes)
@@ -608,4 +609,65 @@ func (s *TdfObjectServer) ListSrcTypes(
 	res.Header().Set("TdfObject-Version", "v1")
 
 	return res, nil
+}
+func (s *TdfObjectServer) RunPythonScript(
+	ctx context.Context,
+	req *connect.Request[tdf_objectv1.RunPythonScriptRequest],
+) (*connect.Response[tdf_objectv1.RunPythonScriptResponse], error) {
+
+	scripts := []string{"seed_data.py", "sim_data_fake_opensky.py"}
+	var combinedOutput strings.Builder
+
+	slog.InfoContext(ctx, "Starting sequential Python script execution",
+		slog.Int("count", len(scripts)))
+
+	for _, script := range scripts {
+		scriptPath := fmt.Sprintf("./%s", script)
+
+		// Capture start time to log duration
+		start := time.Now()
+
+		cmd := exec.CommandContext(ctx, "python3", scriptPath)
+		// Ensure the script runs in the directory where it's located
+		cmd.Dir = "./"
+
+		output, err := cmd.CombinedOutput()
+		duration := time.Since(start)
+
+		// Log specific details about this run
+		scriptLogger := slog.With(
+			slog.String("script", script),
+			slog.Duration("duration", duration),
+		)
+
+		combinedOutput.WriteString(fmt.Sprintf("--- Result of %s (Duration: %v) ---\n", script, duration))
+		combinedOutput.Write(output)
+		combinedOutput.WriteString("\n")
+
+		if err != nil {
+			exitCode := 1
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+
+			// EXTREMELY IMPORTANT: Log the actual stderr/stdout on failure
+			scriptLogger.ErrorContext(ctx, "Script execution failed",
+				slog.Int("exit_code", exitCode),
+				slog.String("error_msg", err.Error()),
+				slog.String("python_traceback", string(output)), // This captures the Python crash details
+			)
+
+			return connect.NewResponse(&tdf_objectv1.RunPythonScriptResponse{
+				Output:   combinedOutput.String() + fmt.Sprintf("\nERROR in %s: %s", script, string(output)),
+				ExitCode: int32(exitCode),
+			}), nil
+		}
+
+		scriptLogger.InfoContext(ctx, "Script completed successfully")
+	}
+
+	return connect.NewResponse(&tdf_objectv1.RunPythonScriptResponse{
+		Output:   combinedOutput.String(),
+		ExitCode: 0,
+	}), nil
 }
