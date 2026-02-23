@@ -330,12 +330,16 @@ export function SourceTypes() {
 
               <Button
                 fullWidth
-                variant="outlined"
-                color="secondary"
+                variant="contained"
+                color="primary"     
                 onClick={handleRunSimulation}
                 disabled={isRunningScript}
                 startIcon={isRunningScript ? undefined : <AltRouteIcon />}
-                sx={{ mb: scriptLogs ? 1 : 0 }}
+                sx={{ 
+                  mb: scriptLogs ? 1 : 0,
+                  fontWeight: 700,
+                  textTransform: 'none' 
+                }}
               >
                 {isRunningScript ? 'Executing Sequence...' : 'Run Seed & Simulation'}
               </Button>
