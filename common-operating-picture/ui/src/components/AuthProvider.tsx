@@ -9,9 +9,9 @@ import { OidcAuthContext } from '@/contexts/OidcAuthContext';
 import { KeycloakAuthContext } from '@/contexts/KeycloakAuthContext';
 
 // Inactivity timeout configuration (in seconds)
-const INACTIVITY_WARNING_SEC = 120;  // Show warning after 1 minute of inactivity
-const INACTIVITY_SIGNOUT_SEC = 180; // Sign out after 2 minutes of inactivity
-const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'pointerdown'] as const;
+const INACTIVITY_WARNING_SEC = 120;  // Show warning after 2 minute of inactivity
+const INACTIVITY_SIGNOUT_SEC = 180; // Sign out after 3 minutes of inactivity
+const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove', 'pointerdown'] as const;
 
 type AuthState = {
   isAuthenticated: boolean;
