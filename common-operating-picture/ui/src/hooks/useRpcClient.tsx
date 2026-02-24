@@ -147,9 +147,9 @@ export function useRpcClient() {
       const tdfBlobBuffer = tdfObject.tdfBlob!.buffer.slice(0);
       worker.postMessage({ tdfBlobBuffer }, [tdfBlobBuffer]);
     });
-  }
+  }, [decrypt, user]);
 
-  async function transformNoteObject(tdfNote: TdfNote): Promise<TdfNotesResponse | null> {
+  const transformNoteObject = useCallback(async (tdfNote: TdfNote): Promise<TdfNotesResponse | null> => {
     try {
       const decryptedData = await decrypt(tdfNote.tdfBlob.buffer);
 
