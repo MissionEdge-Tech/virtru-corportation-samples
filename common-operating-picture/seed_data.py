@@ -174,6 +174,7 @@ def encrypt_data(sdk, plaintext: str, attributes: list[str]) -> bytes:
         kas_info_list=[kas_info]
     )
 
+    # Convert the plaintext JSON string to a byte stream
     input_data_stream = BytesIO(plaintext.encode('utf-8'))
     output_stream = BytesIO()
 
@@ -406,12 +407,21 @@ def insert_seed_data(sdk, should_delete: bool):
         )
         cursor = conn.cursor()
 
+        # --- Conditional Delete logic based on flag ---
         if should_delete:
             print(f"Flag --delete detected. Cleaning up records for src_type: {FIXED_SRC_TYPE}")
             cursor.execute(DELETE_SQL, (FIXED_SRC_TYPE,))
             print(f"Successfully deleted {cursor.rowcount} records.")
 
-        execute_batch(cursor, INSERT_SQL, records, page_size=BATCH_SIZE)
+        # Batch Chunks Insert
+        execute_batch(
+            cursor,
+            INSERT_SQL,
+            records,
+            page_size=BATCH_SIZE
+        )
+
+        # Commit updates
         conn.commit()
         print(f"Successfully inserted {NUM_RECORDS} records into the tdf_objects table.")
 

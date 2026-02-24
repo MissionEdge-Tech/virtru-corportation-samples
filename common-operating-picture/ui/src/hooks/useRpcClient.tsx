@@ -147,11 +147,13 @@ export function useRpcClient() {
       const tdfBlobBuffer = tdfObject.tdfBlob!.buffer.slice(0);
       worker.postMessage({ tdfBlobBuffer }, [tdfBlobBuffer]);
     });
-  }, []);
+  }
 
-  const transformNoteObject = useCallback(async (tdfNote: TdfNote): Promise<TdfNotesResponse | null> => {
+  async function transformNoteObject(tdfNote: TdfNote): Promise<TdfNotesResponse | null> {
     try {
       const decryptedData = await decrypt(tdfNote.tdfBlob.buffer);
+
+      // Attempt to parse the decrypted data
       try {
         const parsedData = JSON.parse(decryptedData);
         return { tdfNote, decryptedData: parsedData };
@@ -161,7 +163,7 @@ export function useRpcClient() {
       }
     } catch (err) {
       console.error('Error decrypting data:', err);
-      return null;
+      return null; // Return null if decryption fails
     }
   }, [decrypt]);
 
