@@ -16,7 +16,10 @@ import { config } from '@/config';
 import { TdfObjectsMapLayer } from '@/components/Map/TdfObjectsMapLayer';
 import { BannerContext } from '@/contexts/BannerContext';
 import { VehicleLayer } from '@/components/Map/VehicleLayer';
+import { VehicleTrailLayer } from '@/components/Map/VehicleTrailLayer';
 import { VehiclePopOutResponse } from '@/components/Map/Vehicle';
+import { useVehicleTrails } from '@/hooks/useVehicleTrails';
+import { mapStringToColor } from '@/pages/SourceTypes/helpers/markers';
 import { TimestampSelector } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
 import { Timestamp } from '@bufbuild/protobuf';
 import dayjs from 'dayjs';
@@ -87,6 +90,30 @@ export function SourceTypes() {
       return classStr ? activeEntitlements.has(classStr) : true;
     });
   }, [vehicleData, activeEntitlements]);
+
+  // ── Vehicle Flight Path Trails ──────────────────────────────────────
+  const { trails, updateTrails } = useVehicleTrails({
+    maxPoints: 5000,
+    minInterval: 2000,  // Record a point every 2 seconds
+  });
+
+  // Feed filtered vehicle positions into the trail accumulator on each refresh
+  useEffect(() => {
+    if (filteredVehicleData.length === 0) return;
+
+    const trailInput = filteredVehicleData.map((v) => {
+      const classification = v.data?.attrClassification;
+      const classStr = Array.isArray(classification) ? classification[0] : classification;
+      return {
+        id: v.id,
+        pos: v.pos,
+        color: mapStringToColor(classStr || 'default'),
+      };
+    });
+
+    updateTrails(trailInput);
+  }, [filteredVehicleData, updateTrails]);
+  // ── End Vehicle Flight Path Trails ──────────────────────────────────
 
   const fetchSrcType = useCallback(async (id: string) => {
     try {
@@ -293,6 +320,14 @@ export function SourceTypes() {
                 </LayersControl.BaseLayer>
 
                 {/* Overlay Layers */}
+                {filteredVehicleData.length > 0 && (
+                  <LayersControl.Overlay name="Flight Paths" checked>
+                    <VehicleTrailLayer
+                      key={`trails-${activeEntitlements.size}`}
+                      trails={trails}
+                    />
+                  </LayersControl.Overlay>
+                )}
                 {filteredVehicleData.length > 0 && (
                   <LayersControl.Overlay name="Planes" checked>
                     {/* Vehicle Layer - key forces re-render when entitlements change */}
