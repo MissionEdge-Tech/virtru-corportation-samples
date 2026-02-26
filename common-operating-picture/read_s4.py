@@ -23,8 +23,8 @@ KC_PASS = os.getenv("PASSWORD", "testuser123")
 CLIENT_ID = 'secure-object-proxy-test'
 CLIENT_SECRET = 'secret'
 
-S4_STS_URL = "http://localhost:7070"
-S4_S3_URL = "http://localhost:7070" 
+S4_STS_URL = "http://virtru-dsp-cop-dev-s4-1:7070"
+S4_S3_URL = "http://virtru-dsp-cop-dev-s4-1:7070" 
 S4_BUCKET = "cop-demo"
 
 # --- DB Configs ---

@@ -65,7 +65,11 @@ export function SourceTypes() {
   const [poppedOutVehicle, setPoppedOutVehicle] = useState<VehiclePopOutResponse | null>(null);
   const [sidebarManifest, setSidebarManifest] = useState<MilitaryManifest | null>(null);
 
-  const { getSrcType, queryTdfObjectsLight } = useRpcClient();
+  // Script execution state
+  const [isRunningScript, setIsRunningScript] = useState(false);
+  const [scriptLogs, setScriptLogs] = useState<string | null>(null);
+
+  const { getSrcType, queryTdfObjectsLight, runPythonScript } = useRpcClient();
   const { tdfObjects, setTdfObjects, activeEntitlements } = useContext(BannerContext);
   const { categorizedData } = useEntitlements();
 
@@ -173,6 +177,29 @@ export function SourceTypes() {
       setVehicleData([]);
     }
   }, [queryTdfObjectsLight]);
+
+  const handleRunSimulation = useCallback(async () => {
+    setIsRunningScript(true);
+    setScriptLogs("Executing sequence: seed_data -> sim_data");
+
+    try {
+      const response = await runPythonScript({
+        scriptId: "simulation_sequence",
+        args: []
+      });
+
+      setScriptLogs(response.output);
+
+      if (response.exitCode === 0) {
+        fetchVehicles(vehicleSourceTypeId);
+      }
+    } catch (err) {
+      console.error("Simulation failed:", err);
+      setScriptLogs("Network error: Failed to trigger orchestration sequence.");
+    } finally {
+      setIsRunningScript(false);
+    }
+  }, [runPythonScript, fetchVehicles, vehicleSourceTypeId]);
 
   useEffect(() => {
     if (vehicleSrcType) return;
@@ -287,6 +314,56 @@ export function SourceTypes() {
             </MapContainer>
           </Grid>
           <Grid item xs={12} md={5}>
+            {/* Python Sequence Orchestration */}
+            <Box sx={{
+              mb: 3,
+              p: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              bgcolor: 'background.paper'
+            }}>
+              <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TrendingUpIcon fontSize="small" color="primary" />
+                Data Orchestration
+              </Typography>
+
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"     
+                onClick={handleRunSimulation}
+                disabled={isRunningScript}
+                startIcon={isRunningScript ? undefined : <AltRouteIcon />}
+                sx={{ 
+                  mb: scriptLogs ? 1 : 0,
+                  fontWeight: 700,
+                  textTransform: 'none' 
+                }}
+              >
+                {isRunningScript ? 'Executing Sequence...' : 'Run Seed & Simulation'}
+              </Button>
+
+              {scriptLogs && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Execution Logs:</Typography>
+                  <Box sx={{
+                    p: 1,
+                    bgcolor: '#121212',
+                    borderRadius: 1,
+                    maxHeight: '150px',
+                    overflowY: 'auto',
+                    border: '1px solid #333'
+                  }}>
+                    <pre style={{ margin: 0, fontSize: '10px', color: '#4caf50', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                      {scriptLogs}
+                    </pre>
+                  </Box>
+                  <Button size="small" sx={{ mt: 0.5, textTransform: 'none' }} onClick={() => setScriptLogs(null)}>Clear Logs</Button>
+                </Box>
+              )}
+            </Box>
+
             <Box display="flex" gap={1} mb={2}>
               <SearchFilter map={map} />
               <Button variant="contained" color="primary" onClick={handleDialogOpen} startIcon={<AddCircle />}>New</Button>

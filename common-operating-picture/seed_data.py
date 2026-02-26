@@ -30,13 +30,13 @@ TOKEN_URL = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/token"
 
 # --- DB Configs ---
 DB_NAME, DB_USER, DB_PASSWORD = "postgres", "postgres", "changeme"
-DB_HOST, DB_PORT = "localhost", 15432
+DB_HOST, DB_PORT = "virtru-dsp-cop-dev-cop-db-1", 5432
 NUM_RECORDS = 50
 BATCH_SIZE = 5
 
 # --- S4 / S3 Configs ---
-S4_STS_ENDPOINT = "http://localhost:7070"
-S4_S3_ENDPOINT = "http://localhost:7070" 
+S4_STS_ENDPOINT = "http://virtru-dsp-cop-dev-s4-1:7070"
+S4_S3_ENDPOINT = "http://virtru-dsp-cop-dev-s4-1:7070" 
 S4_BUCKET = "cop-demo"
 S4_REGION = "us-east-1"
 
