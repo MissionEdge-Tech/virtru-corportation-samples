@@ -31,7 +31,7 @@ TOKEN_URL = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/token"
 # --- DB Configs ---
 DB_NAME, DB_USER, DB_PASSWORD = "postgres", "postgres", "changeme"
 DB_HOST, DB_PORT = "virtru-dsp-cop-dev-cop-db-1", 5432
-NUM_RECORDS = 50
+NUM_RECORDS = 20
 BATCH_SIZE = 5
 
 # --- S4 / S3 Configs ---

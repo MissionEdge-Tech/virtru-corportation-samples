@@ -28,6 +28,8 @@ import FlightIcon from '@mui/icons-material/Flight';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SecurityIcon from '@mui/icons-material/Security';
 import { TdfObjectResult } from './TdfObjectResult';
@@ -69,7 +71,9 @@ export function SourceTypes() {
   const [sidebarManifest, setSidebarManifest] = useState<MilitaryManifest | null>(null);
 
   // Script execution state
-  const [isRunningScript, setIsRunningScript] = useState(false);
+  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
+  const [isStoppingSimulation, setIsStoppingSimulation] = useState(false);
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
   const [scriptLogs, setScriptLogs] = useState<string | null>(null);
 
   const { getSrcType, queryTdfObjectsLight, runPythonScript } = useRpcClient();
@@ -205,28 +209,49 @@ export function SourceTypes() {
     }
   }, [queryTdfObjectsLight]);
 
-  const handleRunSimulation = useCallback(async () => {
-    setIsRunningScript(true);
-    setScriptLogs("Executing sequence: seed_data -> sim_data");
+  const handleStartSimulation = useCallback(async () => {
+    setIsStartingSimulation(true);
+    setScriptLogs("Executing sequence: seed_data -> launch simulation...");
 
     try {
       const response = await runPythonScript({
-        scriptId: "simulation_sequence",
+        scriptId: "simulation_start",
         args: []
       });
 
       setScriptLogs(response.output);
 
       if (response.exitCode === 0) {
+        setIsSimulationRunning(true);
         fetchVehicles(vehicleSourceTypeId);
       }
     } catch (err) {
-      console.error("Simulation failed:", err);
-      setScriptLogs("Network error: Failed to trigger orchestration sequence.");
+      console.error("Start simulation failed:", err);
+      setScriptLogs("Network error: Failed to start simulation.");
     } finally {
-      setIsRunningScript(false);
+      setIsStartingSimulation(false);
     }
   }, [runPythonScript, fetchVehicles, vehicleSourceTypeId]);
+
+  const handleStopSimulation = useCallback(async () => {
+    setIsStoppingSimulation(true);
+    setScriptLogs("Stopping simulation...");
+
+    try {
+      const response = await runPythonScript({
+        scriptId: "simulation_stop",
+        args: []
+      });
+
+      setScriptLogs(response.output);
+      setIsSimulationRunning(false);
+    } catch (err) {
+      console.error("Stop simulation failed:", err);
+      setScriptLogs("Network error: Failed to stop simulation.");
+    } finally {
+      setIsStoppingSimulation(false);
+    }
+  }, [runPythonScript]);
 
   useEffect(() => {
     if (vehicleSrcType) return;
@@ -363,21 +388,39 @@ export function SourceTypes() {
                 Data Orchestration
               </Typography>
 
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"     
-                onClick={handleRunSimulation}
-                disabled={isRunningScript}
-                startIcon={isRunningScript ? undefined : <AltRouteIcon />}
-                sx={{ 
-                  mb: scriptLogs ? 1 : 0,
-                  fontWeight: 700,
-                  textTransform: 'none' 
-                }}
-              >
-                {isRunningScript ? 'Executing Sequence...' : 'Run Seed & Simulation'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="success"     
+                  onClick={handleStartSimulation}
+                  disabled={isStartingSimulation || isSimulationRunning}
+                  startIcon={isStartingSimulation ? undefined : <PlayArrowIcon />}
+                  sx={{ 
+                    mb: scriptLogs ? 1 : 0,
+                    fontWeight: 700,
+                    textTransform: 'none' 
+                  }}
+                >
+                  {isStartingSimulation ? 'Starting...' : isSimulationRunning ? 'Running' : 'Start Simulation'}
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="error"     
+                  onClick={handleStopSimulation}
+                  disabled={isStoppingSimulation || !isSimulationRunning}
+                  startIcon={isStoppingSimulation ? undefined : <StopCircleIcon />}
+                  sx={{ 
+                    mb: scriptLogs ? 1 : 0,
+                    fontWeight: 700,
+                    textTransform: 'none' 
+                  }}
+                >
+                  {isStoppingSimulation ? 'Stopping...' : 'Stop Simulation'}
+                </Button>
+              </Box>
 
               {scriptLogs && (
                 <Box sx={{ mt: 1 }}>
