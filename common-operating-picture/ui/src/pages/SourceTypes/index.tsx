@@ -11,7 +11,9 @@ import { CreateDialog } from './CreateDialog';
 import { SourceTypeSelector } from './SourceTypeSelector';
 import { SearchFilter } from './SearchFilter';
 import { SearchResults } from './SearchResults';
-import { SrcType, TdfObject } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
+import { SimulationPanel } from './SimulationPanel';
+import { SrcType } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
+import { VehicleData } from '@/types/vehicle';
 import { config } from '@/config';
 import { TdfObjectsMapLayer } from '@/components/Map/TdfObjectsMapLayer';
 import { BannerContext } from '@/contexts/BannerContext';
@@ -19,6 +21,7 @@ import { VehicleLayer } from '@/components/Map/VehicleLayer';
 import { VehicleTrailLayer } from '@/components/Map/VehicleTrailLayer';
 import { VehiclePopOutResponse } from '@/components/Map/Vehicle';
 import { useVehicleTrails } from '@/hooks/useVehicleTrails';
+import { useSimulation } from '@/hooks/useSimulation';
 import { mapStringToColor } from '@/pages/SourceTypes/helpers/markers';
 import { TimestampSelector } from '@/proto/tdf_object/v1/tdf_object_pb.ts';
 import { Timestamp } from '@bufbuild/protobuf';
@@ -28,8 +31,6 @@ import FlightIcon from '@mui/icons-material/Flight';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
-import StopCircleIcon from '@mui/icons-material/StopCircle';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SecurityIcon from '@mui/icons-material/Security';
 import { TdfObjectResult } from './TdfObjectResult';
@@ -39,25 +40,6 @@ import { extractValues } from '@/contexts/BannerContext';
 import { ManifestDisplay, ManifestLoader } from '@/components/ManifestDisplay';
 import { MilitaryManifest } from '@/services/s4Service';
 
-export interface VehicleDataItem {
-  id: string;
-  pos: { lat: number; lng: number };
-  rawObject: TdfObject;
-  data?: {
-    vehicleName?: string;
-    callsign?: string;
-    origin?: string;
-    destination?: string;
-    speed?: string;
-    altitude?: string;
-    heading?: string;
-    aircraft_type?: string;
-    attrClassification?: string | string[];
-    attrNeedToKnow?: string[];
-    attrRelTo?: string[];
-  };
-}
-
 export function SourceTypes() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [srcTypeId, setSrcTypeId] = useState<string | null>(null);
@@ -65,18 +47,12 @@ export function SourceTypes() {
   const [map, setMap] = useState<Map | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [srcType, setSrcType] = useState<SrcType>();
-  const [vehicleData, setVehicleData] = useState<VehicleDataItem[]>([]);
+  const [vehicleData, setVehicleData] = useState<VehicleData[]>([]);
   const [vehicleSrcType, setVehicleSrcType] = useState<SrcType>();
   const [poppedOutVehicle, setPoppedOutVehicle] = useState<VehiclePopOutResponse | null>(null);
   const [sidebarManifest, setSidebarManifest] = useState<MilitaryManifest | null>(null);
 
-  // Script execution state
-  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
-  const [isStoppingSimulation, setIsStoppingSimulation] = useState(false);
-  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
-  const [scriptLogs, setScriptLogs] = useState<string | null>(null);
-
-  const { getSrcType, queryTdfObjectsLight, runPythonScript } = useRpcClient();
+  const { getSrcType, queryTdfObjectsLight } = useRpcClient();
   const { tdfObjects, setTdfObjects, activeEntitlements } = useContext(BannerContext);
   const { categorizedData } = useEntitlements();
 
@@ -157,7 +133,7 @@ export function SourceTypes() {
     if (map) map.flyTo({ lat, lng }, map.getZoom());
   }, [map]);
 
-  const handleVehicleClick = useCallback((vehicle: VehicleDataItem) => {
+  const handleVehicleClick = useCallback((vehicle: VehicleData) => {
     console.log('Selected vehicle:', vehicle);
   }, []);
 
@@ -178,7 +154,7 @@ export function SourceTypes() {
         tsRange: tsRange,
       });
 
-      const transformedData: VehicleDataItem[] = response
+      const transformedData: VehicleData[] = response
         .filter(o => o.geo)
         .map(o => {
           const geoJson = JSON.parse(o.geo);
@@ -209,49 +185,9 @@ export function SourceTypes() {
     }
   }, [queryTdfObjectsLight]);
 
-  const handleStartSimulation = useCallback(async () => {
-    setIsStartingSimulation(true);
-    setScriptLogs("Executing sequence: seed_data -> launch simulation...");
-
-    try {
-      const response = await runPythonScript({
-        scriptId: "simulation_start",
-        args: []
-      });
-
-      setScriptLogs(response.output);
-
-      if (response.exitCode === 0) {
-        setIsSimulationRunning(true);
-        fetchVehicles(vehicleSourceTypeId);
-      }
-    } catch (err) {
-      console.error("Start simulation failed:", err);
-      setScriptLogs("Network error: Failed to start simulation.");
-    } finally {
-      setIsStartingSimulation(false);
-    }
-  }, [runPythonScript, fetchVehicles, vehicleSourceTypeId]);
-
-  const handleStopSimulation = useCallback(async () => {
-    setIsStoppingSimulation(true);
-    setScriptLogs("Stopping simulation...");
-
-    try {
-      const response = await runPythonScript({
-        scriptId: "simulation_stop",
-        args: []
-      });
-
-      setScriptLogs(response.output);
-      setIsSimulationRunning(false);
-    } catch (err) {
-      console.error("Stop simulation failed:", err);
-      setScriptLogs("Network error: Failed to stop simulation.");
-    } finally {
-      setIsStoppingSimulation(false);
-    }
-  }, [runPythonScript]);
+  const simulation = useSimulation({
+    onStartSuccess: () => fetchVehicles(vehicleSourceTypeId),
+  });
 
   useEffect(() => {
     if (vehicleSrcType) return;
@@ -374,73 +310,15 @@ export function SourceTypes() {
             </MapContainer>
           </Grid>
           <Grid item xs={12} md={5}>
-            {/* Python Sequence Orchestration */}
-            <Box sx={{
-              mb: 3,
-              p: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              bgcolor: 'background.paper'
-            }}>
-              <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TrendingUpIcon fontSize="small" color="primary" />
-                Data Orchestration
-              </Typography>
-
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="success"     
-                  onClick={handleStartSimulation}
-                  disabled={isStartingSimulation || isSimulationRunning}
-                  startIcon={isStartingSimulation ? undefined : <PlayArrowIcon />}
-                  sx={{ 
-                    mb: scriptLogs ? 1 : 0,
-                    fontWeight: 700,
-                    textTransform: 'none' 
-                  }}
-                >
-                  {isStartingSimulation ? 'Starting...' : isSimulationRunning ? 'Running' : 'Start Simulation'}
-                </Button>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="error"     
-                  onClick={handleStopSimulation}
-                  disabled={isStoppingSimulation || !isSimulationRunning}
-                  startIcon={isStoppingSimulation ? undefined : <StopCircleIcon />}
-                  sx={{ 
-                    mb: scriptLogs ? 1 : 0,
-                    fontWeight: 700,
-                    textTransform: 'none' 
-                  }}
-                >
-                  {isStoppingSimulation ? 'Stopping...' : 'Stop Simulation'}
-                </Button>
-              </Box>
-
-              {scriptLogs && (
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">Execution Logs:</Typography>
-                  <Box sx={{
-                    p: 1,
-                    bgcolor: '#121212',
-                    borderRadius: 1,
-                    maxHeight: '150px',
-                    overflowY: 'auto',
-                    border: '1px solid #333'
-                  }}>
-                    <pre style={{ margin: 0, fontSize: '10px', color: '#4caf50', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                      {scriptLogs}
-                    </pre>
-                  </Box>
-                  <Button size="small" sx={{ mt: 0.5, textTransform: 'none' }} onClick={() => setScriptLogs(null)}>Clear Logs</Button>
-                </Box>
-              )}
-            </Box>
+            <SimulationPanel
+              isStarting={simulation.isStarting}
+              isStopping={simulation.isStopping}
+              isRunning={simulation.isRunning}
+              logs={simulation.logs}
+              onStart={simulation.start}
+              onStop={simulation.stop}
+              onClearLogs={simulation.clearLogs}
+            />
 
             <Box display="flex" gap={1} mb={2}>
               <SearchFilter map={map} />

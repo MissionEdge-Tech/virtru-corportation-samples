@@ -1,29 +1,10 @@
 import { LayerGroup } from 'react-leaflet';
 import { VehicleMarker, VehiclePopOutResponse } from './Vehicle';
-import { TdfObject } from '@/proto/tdf_object/v1/tdf_object_pb';
-
-interface VehicleDataItem {
-  id: string;
-  pos: { lat: number; lng: number };
-  rawObject: TdfObject;
-  data?: {
-    vehicleName?: string | undefined;
-    callsign?: string;
-    origin?: string;
-    destination?: string;
-    speed?: string;
-    altitude?: string;
-    heading?: string;
-    aircraft_type?: string;
-    attrClassification?: string | string[];
-    attrNeedToKnow?: string[];
-    attrRelTo?: string[];
-  };
-}
+import { VehicleData } from '@/types/vehicle';
 
 interface VehicleLayerProps {
-  vehicleData: VehicleDataItem[];
-  onMarkerClick: (vehicle: VehicleDataItem) => void;
+  vehicleData: VehicleData[];
+  onMarkerClick: (vehicle: VehicleData) => void;
   onPopOut: (tdfResponse: VehiclePopOutResponse) => void;
 }
 
