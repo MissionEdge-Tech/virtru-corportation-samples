@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { LayersControl, MapContainer, TileLayer } from 'react-leaflet';
 import { Map } from 'leaflet';
 import { config } from '@/config';
-import { TdfObject } from '@/proto/tdf_object/v1/tdf_object_pb';
+import { TdfObjectResponse } from '@/hooks/useRpcClient';
 import { VehicleData } from '@/types/vehicle';
 import { VehicleLayer } from '@/components/Map/VehicleLayer';
 import { VehicleTrailLayer } from '@/components/Map/VehicleTrailLayer';
@@ -13,7 +13,7 @@ import { mapStringToColor } from '@/pages/SourceTypes/helpers/markers';
 
 interface CopMapProps {
   filteredVehicleData: VehicleData[];
-  tdfObjects: TdfObject[];
+  tdfObjects: TdfObjectResponse[];
   activeEntitlements: Set<string>;
   onMapReady: (map: Map) => void;
   onVehicleClick: (vehicle: VehicleData) => void;

@@ -20,7 +20,7 @@ import { TdfObjectResult } from './TdfObjectResult';
 interface VehicleDetailSidebarProps {
   vehicle: VehiclePopOutResponse;
   vehicleSrcType: SrcType | undefined;
-  categorizedData: Record<string, unknown>;
+  categorizedData: Record<string, string[]>;
   onClose: () => void;
   onFlyToClick: (latlng: LatLng) => void;
 }
