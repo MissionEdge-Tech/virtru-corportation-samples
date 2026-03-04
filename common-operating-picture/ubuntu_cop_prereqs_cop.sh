@@ -104,6 +104,27 @@ else
 fi
 
 # ------------------------------------------------------------
+# Add trino-keycloak.virtru.com and trino-platform.virtru.comto /etc/hosts if not already present
+# ------------------------------------------------------------
+
+echo "=== Ensuring trino-keycloak.virtru.com and trino-platform.virtru.com are mapped in /etc/hosts ==="
+if ! grep -q "trino-keycloak\.virtru\.com" /etc/hosts; then
+  echo "127.0.0.1    trino-keycloak.virtru.com" | sudo tee -a /etc/hosts > /dev/null
+  echo "Added entry: 127.0.0.1 trino-keycloak.virtru.com"
+else
+  echo "Entry already exists — skipping."
+fi
+
+if ! grep -q "trino-platform\.virtru\.com" /etc/hosts; then
+  echo "127.0.0.1    trino-platform.virtru.com" | sudo tee -a /etc/hosts > /dev/null
+  echo "Added entry: 127.0.0.1 trino-platform.virtru.com"
+else
+  echo "Entry already exists — skipping."
+fi
+
+
+
+# ------------------------------------------------------------
 # Post-install instructions
 # ------------------------------------------------------------
 echo "===================================="
