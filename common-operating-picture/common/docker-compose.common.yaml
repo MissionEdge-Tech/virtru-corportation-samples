@@ -20,19 +20,11 @@ name: virtru-dsp-cop-dev
 services:
 
 #================================================================
-# Start the COP web server (go process + react app)
-#----------------------------------------------------------------
-  cop-web-server:
-    extends:
-      file: ./compose/docker-compose.cop-web-server.yaml
-      service: cop-web-server
-      
-#================================================================
 # Start Keycloak
 #----------------------------------------------------------------
   keycloak:
     extends:
-      file: ./compose/docker-compose.keycloak.yaml
+      file: ../compose/docker-compose.keycloak.yaml
       service: keycloak
 
 #================================================================
@@ -40,7 +32,7 @@ services:
 #----------------------------------------------------------------
   dsp-keycloak-provisioning:
     extends:
-      file: ./compose/docker-compose.dsp.yaml
+      file: ../compose/docker-compose.dsp.yaml
       service: dsp-keycloak-provisioning
 
 #================================================================
@@ -48,7 +40,7 @@ services:
 #----------------------------------------------------------------
   dsp-db:
     extends:
-      file: ./compose/docker-compose.dsp.yaml
+      file: ../compose/docker-compose.dsp.yaml
       service: dsp-db
 
 #================================================================
@@ -56,7 +48,7 @@ services:
 #----------------------------------------------------------------
   dsp:
     extends:
-      file: ./compose/docker-compose.dsp.yaml
+      file: ../compose/docker-compose.dsp.yaml
       service: dsp
 
 #================================================================
@@ -64,7 +56,7 @@ services:
 #----------------------------------------------------------------
   dsp-provision-federal-policy:
     extends:
-      file: ./compose/docker-compose.dsp.yaml
+      file: ../compose/docker-compose.dsp.yaml
       service: dsp-provision-federal-policy
 
 #================================================================
@@ -72,5 +64,5 @@ services:
 #----------------------------------------------------------------
   dsp-cli-user:
     extends:
-      file: ./compose/docker-compose.dsp.yaml
+      file: ../compose/docker-compose.dsp.yaml
       service: dsp-cli-user
