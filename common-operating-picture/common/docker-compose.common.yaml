@@ -1,0 +1,76 @@
+################################################################################
+#
+# Data Security Platform (DSP) Docker Compose
+# 
+# This file is used to define the services for baseline DSP functionality agnostic of COP
+################################################################################
+
+### Exposed Ports ###
+# 8888:8888 - Keycloak HTTP
+# 8443:8443 - Keycloak HTTPS
+# 25434:5432 - Keycloak database
+# 35433:5432 - DSP database
+# 8080:8080 - DSP services
+
+
+name: virtru-dsp-cop-dev
+
+###
+# The following services are primarily defined in the docker-compose.base.yaml file.
+services:
+
+#================================================================
+# Start the COP web server (go process + react app)
+#----------------------------------------------------------------
+  cop-web-server:
+    extends:
+      file: ./compose/docker-compose.cop-web-server.yaml
+      service: cop-web-server
+      
+#================================================================
+# Start Keycloak
+#----------------------------------------------------------------
+  keycloak:
+    extends:
+      file: ./compose/docker-compose.keycloak.yaml
+      service: keycloak
+
+#================================================================
+# Provisioning Keycloak with expected realm, clients, and users 
+#----------------------------------------------------------------
+  dsp-keycloak-provisioning:
+    extends:
+      file: ./compose/docker-compose.dsp.yaml
+      service: dsp-keycloak-provisioning
+
+#================================================================
+# Start the DSP database
+#----------------------------------------------------------------
+  dsp-db:
+    extends:
+      file: ./compose/docker-compose.dsp.yaml
+      service: dsp-db
+
+#================================================================
+# Start the DSP services
+#----------------------------------------------------------------
+  dsp:
+    extends:
+      file: ./compose/docker-compose.dsp.yaml
+      service: dsp
+
+#================================================================
+# Provision the DSP with DSP COP federal policy
+#----------------------------------------------------------------
+  dsp-provision-federal-policy:
+    extends:
+      file: ./compose/docker-compose.dsp.yaml
+      service: dsp-provision-federal-policy
+
+#================================================================
+# Wait for someone needing a shell 
+#----------------------------------------------------------------
+  dsp-cli-user:
+    extends:
+      file: ./compose/docker-compose.dsp.yaml
+      service: dsp-cli-user
