@@ -1,0 +1,32 @@
+{
+    "CompositeObject": [
+        {
+            "Type": "Facilities",
+            "Details": {
+                "facilityName": "Alpha Facility 1",
+                "symbolCode2525b": "SUP*------*****",
+                "location": {
+                    "country": "American Samoa",
+                    "alpha2": "AS",
+                    "alpha3": "ASM",
+                    "numeric": 16,
+                    "latitude": -14.3333,
+                    "longitude": -170
+                },
+                "Coord": "143333000S17000000000W",
+                "ProducerDateTimeLastChg": "2026-01-20T01:00:00Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"],
+                "attrRelTo": ["https://demo.com/attr/relto/value/nato"],
+                "attrNeedToKnow": ["https://demo.com/attr/needtoknow/value/bbb"]
+            },
+            "Search": {
+                "facilityName": "Alpha Facility 1",
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"],
+                "attrRelTo": ["https://demo.com/attr/relto/value/nato"],
+                "attrNeedToKnow": ["https://demo.com/attr/needtoknow/value/bbb"]
+            },
+            "Metadata": {},
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><edh:ExternalEdh>...</edh:ExternalEdh>"
+        }
+    ]
+}

@@ -1,0 +1,207 @@
+{
+    "CompositeObject": [
+        {
+            "Type": "vehicles",
+            "tdfFormat": "nano",
+            "Details": {
+                "vehicleName": "F-35A Lightning II",
+                "registration": "USAF-4821",
+                "tailNumber": "19-5042",
+                "origin": "NELLIS AFB",
+                "destination": "AO-BRV-12",
+                "aircraft_type": "F-35A (FIGHTER)",
+                "operator": "USAF 422 SQN",
+                "homeStation": "NELLIS AFB",
+                "platform": {
+                    "designation": "F-35A",
+                    "name": "Lightning II",
+                    "type": "FIGHTER",
+                    "service": "USAF"
+                },
+                "mission": {
+                    "missionId": "MSN-20260308-1042",
+                    "operationName": "OP IRON SENTINEL",
+                    "missionType": "CAP",
+                    "priority": "PRIORITY",
+                    "commandAuthority": "CENTCOM",
+                    "taskingOrder": "ATO-2026068-117",
+                    "missionStatus": "ON_STATION"
+                },
+                "sensors": {
+                    "primarySensor": "RADAR",
+                    "activeSensors": ["RADAR", "EO/IR", "ESM"],
+                    "emissionControl": "EMCON BRAVO",
+                    "datalinks": ["LINK-16", "MADL"]
+                },
+                "coordination": {
+                    "supportingUnits": ["USAF 964 WG", "USN 225 SQN"],
+                    "coalitionPartners": ["USA", "GBR", "AUS"],
+                    "frequencyPlan": {
+                        "primary": "324.75 MHz",
+                        "secondary": "289.10 MHz",
+                        "guard": "243.00 MHz"
+                    }
+                },
+                "Coord": "389531000N07745650000W",
+                "ProducerDateTimeLastChg": "2026-03-08T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/secret"],
+                "attrRelTo": [],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/secret"]
+            },
+            "Metadata": {
+                "callsign": "VPR01",
+                "speed": "450 kts",
+                "altitude": "FL350",
+                "heading": "090"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-001</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-08T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"S\" ism:ownerProducer=\"USA\" ism:disseminationControls=\"\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-08\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"Flight Ops\" ism:declassDate=\"2031-03-08\"/>\n</edh:ExternalEdh>"
+        },
+        {
+            "Type": "vehicles",
+            "tdfFormat": "nano",
+            "Details": {
+                "vehicleName": "MQ-9A Reaper",
+                "registration": "USAF-7733",
+                "tailNumber": "21-0087",
+                "origin": "CREECH AFB",
+                "destination": "AO-KNX-05",
+                "aircraft_type": "MQ-9A (UAV)",
+                "operator": "USAF 432 WG",
+                "homeStation": "CREECH AFB",
+                "platform": {
+                    "designation": "MQ-9A",
+                    "name": "Reaper",
+                    "type": "UAV",
+                    "service": "USAF"
+                },
+                "mission": {
+                    "missionId": "MSN-20260308-2087",
+                    "operationName": "OP SHADOW GAZE",
+                    "missionType": "ISR",
+                    "priority": "IMMEDIATE",
+                    "commandAuthority": "CENTCOM",
+                    "taskingOrder": "ATO-2026068-203",
+                    "missionStatus": "ON_STATION"
+                },
+                "intelligence": {
+                    "collectionDiscipline": ["IMINT", "SIGINT", "ELINT"],
+                    "targetDeck": [
+                        {
+                            "targetId": "TGT-3A8F21",
+                            "targetName": "ATLAS 7",
+                            "targetType": "FACILITY",
+                            "priority": 1
+                        },
+                        {
+                            "targetId": "TGT-9C2B44",
+                            "targetName": "VIPER 22",
+                            "targetType": "VEHICLE",
+                            "priority": 2
+                        }
+                    ],
+                    "collectionRequirements": ["CR-4410", "CR-4411"],
+                    "reportingInstructions": "RPTG-KNX-07"
+                },
+                "sensors": {
+                    "primarySensor": "EO/IR",
+                    "activeSensors": ["EO/IR", "SAR", "GMTI", "ESM"],
+                    "emissionControl": "EMCON CHARLIE",
+                    "datalinks": ["LINK-16", "CDL", "SADL"]
+                },
+                "coordination": {
+                    "supportingUnits": ["USAF 480 WG", "USA 101 DIV"],
+                    "coalitionPartners": ["USA", "GBR", "CAN", "AUS", "NZL"],
+                    "frequencyPlan": {
+                        "primary": "341.20 MHz",
+                        "secondary": "278.50 MHz",
+                        "guard": "243.00 MHz"
+                    }
+                },
+                "Coord": "361500000N11546000000W",
+                "ProducerDateTimeLastChg": "2026-03-08T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"],
+                "attrRelTo": [],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"]
+            },
+            "Metadata": {
+                "callsign": "HAWK03",
+                "speed": "210 kts",
+                "altitude": "FL250",
+                "heading": "270"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-002</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-08T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"TS\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA GBR CAN AUS NZL\" ism:disseminationControls=\"NF\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-08\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"ISR Tasking\" ism:declassDate=\"2031-03-08\"/>\n</edh:ExternalEdh>"
+        },
+        {
+            "Type": "vehicles",
+            "tdfFormat": "ztdf",
+            "Details": {
+                "vehicleName": "KC-135R Stratotanker",
+                "registration": "USAF-6190",
+                "tailNumber": "62-3547",
+                "origin": "AL UDEID AB",
+                "destination": "ORBIT TRACK ALPHA",
+                "aircraft_type": "KC-135R (TANKER)",
+                "operator": "USAF 340 WG",
+                "homeStation": "AL UDEID AB",
+                "platform": {
+                    "designation": "KC-135R",
+                    "name": "Stratotanker",
+                    "type": "TANKER",
+                    "service": "USAF"
+                },
+                "mission": {
+                    "missionId": "MSN-20260308-3190",
+                    "operationName": "OP IRON SENTINEL",
+                    "missionType": "TANKER",
+                    "priority": "ROUTINE",
+                    "commandAuthority": "CENTCOM",
+                    "taskingOrder": "ATO-2026068-055",
+                    "missionStatus": "TRANSITING"
+                },
+                "sensors": {
+                    "primarySensor": "RADAR",
+                    "activeSensors": ["RADAR"],
+                    "emissionControl": "EMCON ALPHA",
+                    "datalinks": ["LINK-16"]
+                },
+                "coordination": {
+                    "supportingUnits": ["USAF 422 SQN"],
+                    "coalitionPartners": ["USA", "GBR"],
+                    "frequencyPlan": {
+                        "primary": "310.60 MHz",
+                        "secondary": "295.40 MHz",
+                        "guard": "243.00 MHz"
+                    },
+                    "checkInPoint": "CP-ARC"
+                },
+                "Coord": "251700000N05131000000E",
+                "ProducerDateTimeLastChg": "2026-03-08T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/secret"],
+                "attrRelTo": [],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": [],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/secret"]
+            },
+            "Metadata": {
+                "callsign": "TEXCO61",
+                "speed": "480 kts",
+                "altitude": "FL280",
+                "heading": "045"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-003</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-08T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"S\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA NATO\" ism:disseminationControls=\"\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-08\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"ATO Tasking\" ism:declassDate=\"2031-03-08\"/>\n</edh:ExternalEdh>"
+        }
+    ]
+}

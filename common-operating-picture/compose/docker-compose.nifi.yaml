@@ -14,6 +14,7 @@ services:
 # Start NiFi
 #----------------------------------------------------------------
   nifi:
+    hostname: nifi
     image: ${NIFI_IMAGE:-ghcr.io/ttschampel/nifi/nifi-1.25.0-jre17:latest}
     depends_on:
       cop-db:
