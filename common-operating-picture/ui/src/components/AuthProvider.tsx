@@ -159,16 +159,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const stopSimulationBeforeSignOut = useCallback(async () => {
+    const storedUser = sessionStorage.getItem(userStorageKey);
+    if (!storedUser) return;
+    try {
+      const { accessToken } = JSON.parse(storedUser);
+      if (accessToken) {
+        await crpcClient.runPythonScript(
+          { scriptId: 'simulation_stop', args: [] },
+          { headers: { 'Authorization': accessToken } }
+        );
+      }
+    } catch (err) {
+      console.warn('Failed to stop simulation on sign out:', err);
+    }
+  }, []);
+
   const handleIdleSignOut = useCallback(async () => {
     clearIdleTimers();
     isWarningVisibleRef.current = false;
     setShowIdleWarning(false);
+    await stopSimulationBeforeSignOut();
     if (AuthContextImpl) {
       await AuthContextImpl.signOut();
     }
     sessionStorage.removeItem(authTypeStorageKey);
     dispatch({ type: 'SIGNOUT', payload: { user: null, error: 'You were signed out due to inactivity.' } });
-  }, [clearIdleTimers]);
+  }, [clearIdleTimers, stopSimulationBeforeSignOut]);
 
   const startIdleTimers = useCallback(() => {
     clearIdleTimers();
@@ -244,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    await stopSimulationBeforeSignOut();
     if (AuthContextImpl) {
       await AuthContextImpl.signOut();
     }

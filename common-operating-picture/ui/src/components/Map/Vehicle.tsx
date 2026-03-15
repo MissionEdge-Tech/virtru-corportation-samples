@@ -164,7 +164,7 @@ export function VehicleMarker({ markerId, Position, data, rawObject, onClick, on
   const [decryptedData, setDecryptedData] = useState<any>(null);
   const [currentPos, setCurrentPos] = useState(Position);
 
-  const displayData = useMemo(() => ({ ...data, ...decryptedData }), [data, decryptedData]);
+  const displayData = useMemo(() => ({ ...decryptedData, ...data }), [data, decryptedData]);
 
   const initialHeading = useMemo(() => {
     const heading = parseInt(displayData?.heading || '0', 10);

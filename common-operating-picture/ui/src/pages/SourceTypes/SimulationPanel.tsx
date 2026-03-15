@@ -1,7 +1,9 @@
-import { Box, Button, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, Typography } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import TerminalIcon from '@mui/icons-material/Terminal';
 
 interface SimulationPanelProps {
   isStarting: boolean;
@@ -50,7 +52,6 @@ export function SimulationPanel({
           disabled={isStarting || isRunning}
           startIcon={isStarting ? undefined : <PlayArrowIcon />}
           sx={{
-            mb: logs ? 1 : 0,
             fontWeight: 700,
             textTransform: 'none',
           }}
@@ -66,7 +67,6 @@ export function SimulationPanel({
           disabled={isStopping || !isRunning}
           startIcon={isStopping ? undefined : <StopCircleIcon />}
           sx={{
-            mb: logs ? 1 : 0,
             fontWeight: 700,
             textTransform: 'none',
           }}
@@ -76,36 +76,42 @@ export function SimulationPanel({
       </Box>
 
       {logs && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            Execution Logs:
-          </Typography>
-          <Box sx={{
-            p: 1,
-            bgcolor: '#121212',
-            borderRadius: 1,
-            maxHeight: '150px',
-            overflowY: 'auto',
-            border: '1px solid #333',
-          }}>
-            <pre style={{
-              margin: 0,
-              fontSize: '10px',
-              color: '#4caf50',
-              whiteSpace: 'pre-wrap',
-              fontFamily: 'monospace',
+        <Accordion disableGutters elevation={0} sx={{ mt: 1, border: '1px solid #333', borderRadius: 1, '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ minHeight: 36, px: 1.5, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TerminalIcon sx={{ fontSize: 14, color: '#4caf50' }} />
+              <Typography variant="caption" fontWeight={600} sx={{ color: 'text.secondary', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                Execution Logs
+              </Typography>
+              <Chip label="stdout" size="small" sx={{ height: 16, fontSize: 9, fontFamily: 'monospace', bgcolor: '#1a2a1a', color: '#4caf50', border: '1px solid #2e5c2e' }} />
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails sx={{ p: 0 }}>
+            <Box sx={{
+              p: 1,
+              bgcolor: '#121212',
+              maxHeight: '150px',
+              overflowY: 'auto',
             }}>
-              {logs}
-            </pre>
-          </Box>
-          <Button
-            size="small"
-            sx={{ mt: 0.5, textTransform: 'none' }}
-            onClick={onClearLogs}
-          >
-            Clear Logs
-          </Button>
-        </Box>
+              <pre style={{
+                margin: 0,
+                fontSize: '10px',
+                color: '#4caf50',
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'monospace',
+              }}>
+                {logs}
+              </pre>
+            </Box>
+            <Button
+              size="small"
+              sx={{ mx: 1, mb: 0.5, textTransform: 'none' }}
+              onClick={onClearLogs}
+            >
+              Clear Logs
+            </Button>
+          </AccordionDetails>
+        </Accordion>
       )}
     </Box>
   );

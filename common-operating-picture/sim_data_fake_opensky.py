@@ -1,6 +1,7 @@
 import asyncio
+import json
+import math
 import time
-import uuid
 import psycopg2
 import random
 from shapely.geometry import Point
@@ -61,27 +62,40 @@ async def update_simulated_positions(conn_params, uuids):
         # If we haven't seen this flight yet, initialize it
         if entity_id not in FLIGHT_SIMULATION_DATA:
             FLIGHT_SIMULATION_DATA[entity_id] = {
-                "lat": random.uniform(BOUNDING_BOX['lamin'], BOUNDING_BOX['lamax']),
-                "lon": random.uniform(BOUNDING_BOX['lomin'], BOUNDING_BOX['lomax']),
-                "v_lat": random.uniform(-0.05, 0.05), # Velocity Latitude
-                "v_lon": random.uniform(-0.05, 0.05)  # Velocity Longitude
+                "lat":       random.uniform(BOUNDING_BOX['lamin'], BOUNDING_BOX['lamax']),
+                "lon":       random.uniform(BOUNDING_BOX['lomin'], BOUNDING_BOX['lomax']),
+                "v_lat":     random.uniform(-0.05, 0.05),
+                "v_lon":     random.uniform(-0.05, 0.05),
+                "speed_kts": random.randint(200, 600),
+                "altitude":  random.randint(150, 450),
             }
-        
+
         state = FLIGHT_SIMULATION_DATA[entity_id]
-        
+
         # Move the flight
         state["lat"] += state["v_lat"]
         state["lon"] += state["v_lon"]
-        
+
         # Bounce off the bounding box edges to keep them in view
         if not (BOUNDING_BOX['lamin'] < state["lat"] < BOUNDING_BOX['lamax']):
             state["v_lat"] *= -1
         if not (BOUNDING_BOX['lomin'] < state["lon"] < BOUNDING_BOX['lomax']):
             state["v_lon"] *= -1
-            
-        # Prepare WKB
+
+        # Vary speed and altitude slightly each tick
+        state["speed_kts"] = max(150, min(700, state["speed_kts"] + random.randint(-10, 10)))
+        state["altitude"]  = max(100, min(500, state["altitude"]  + random.randint(-5, 5)))
+
+        # Derive heading from velocity vector
+        angle = math.degrees(math.atan2(state["v_lon"], state["v_lat"]))
+        heading = int((angle + 360) % 360)
+
         wkb_geo = lat_lon_to_wkb(state["lat"], state["lon"])
-        updates.append((wkb_geo, entity_id))
+        updates.append((wkb_geo, json.dumps({
+            "speed":    f"{state['speed_kts']} kts",
+            "altitude": f"FL{state['altitude']}",
+            "heading":  str(heading),
+        }), entity_id))
 
     # Push to Database
     if updates:
@@ -90,21 +104,23 @@ async def update_simulated_positions(conn_params, uuids):
             conn = psycopg2.connect(**conn_params)
             cursor = conn.cursor()
 
-            # Optimized bulk update query
-            update_query = f"""
-            UPDATE {TABLE_NAME} AS t
-            SET
-                geo = ST_SetSRID(ST_GeomFromWKB(src.wkb_geos), 4326)
-            FROM
-                (SELECT unnest(%s) as wkb_geos, unnest(%s) as entity_uuid) AS src
-            WHERE
-                t.id = src.entity_uuid::uuid;
-            """
-            
-            wkb_list = [u[0] for u in updates]
-            uuid_list = [u[1] for u in updates]
-            
-            cursor.execute(update_query, (wkb_list, uuid_list))
+            wkb_list  = [u[0] for u in updates]
+            meta_list = [u[1] for u in updates]
+            uuid_list = [u[2] for u in updates]
+
+            cursor.execute(f"""
+                UPDATE {TABLE_NAME} AS t
+                SET geo = ST_SetSRID(ST_GeomFromWKB(src.wkb_geos), 4326)
+                FROM (SELECT unnest(%s) AS wkb_geos, unnest(%s) AS entity_uuid) AS src
+                WHERE t.id = src.entity_uuid::uuid;
+            """, (wkb_list, uuid_list))
+
+            cursor.execute(f"""
+                UPDATE {TABLE_NAME} AS t
+                SET metadata = COALESCE(t.metadata::jsonb, '{{}}'::jsonb) || src.new_meta::jsonb
+                FROM (SELECT unnest(%s) AS new_meta, unnest(%s) AS entity_uuid) AS src
+                WHERE t.id = src.entity_uuid::uuid;
+            """, (meta_list, uuid_list))
             conn.commit()
             print(f"[{time.strftime('%H:%M:%S')}] Updated {cursor.rowcount} flights.")
             

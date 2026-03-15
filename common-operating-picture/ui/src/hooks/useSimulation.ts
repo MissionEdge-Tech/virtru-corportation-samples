@@ -31,7 +31,8 @@ export function useSimulation({ onStartSuccess }: UseSimulationOptions = {}) {
       }
     } catch (err) {
       console.error('Start simulation failed:', err);
-      setLogs('Network error: Failed to start simulation.');
+      const message = err instanceof Error ? err.message : String(err);
+      setLogs(`Error: ${message}`);
     } finally {
       setIsStarting(false);
     }
@@ -51,7 +52,8 @@ export function useSimulation({ onStartSuccess }: UseSimulationOptions = {}) {
       setIsRunning(false);
     } catch (err) {
       console.error('Stop simulation failed:', err);
-      setLogs('Network error: Failed to stop simulation.');
+      const message = err instanceof Error ? err.message : String(err);
+      setLogs(`Error: ${message}`);
     } finally {
       setIsStopping(false);
     }
