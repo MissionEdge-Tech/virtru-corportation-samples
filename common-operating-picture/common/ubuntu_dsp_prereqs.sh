@@ -44,24 +44,6 @@ fi
 
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
-
-# ------------------------------------------------------------
-# Node.js (LTS) + npm + nvm
-# ------------------------------------------------------------
-echo "=== Installing Node.js (LTS) ==="
-if ! command -v node &> /dev/null; then
-  curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-  sudo apt install -y nodejs
-fi
-
-echo "=== Installing nvm (Node Version Manager) ==="
-if [ ! -d "$HOME/.nvm" ]; then
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm install --lts
-fi
-
 # ------------------------------------------------------------
 # Go (Golang)
 # ------------------------------------------------------------
@@ -107,21 +89,10 @@ fi
 # Post-install instructions
 # ------------------------------------------------------------
 echo "===================================="
-echo -e "
-  \033[1;32m\033[1m   CCCCCC\033[0m    \033[1;32m\033[1m OOOO\033[0m \033[1;32m\033[1m   PPPPPP\033[0m
-  \033[1;32m\033[1m  CCC   CC\033[0m   \033[1;32m\033[1mOO  OO\033[0m \033[1;32m\033[1m  PP   PP\033[0m
-  \033[1;32m\033[1m CC\033[0m       \033[1;32m\033[1m OO      OO\033[0m \033[1;32m\033[1mPP   PP\033[0m
-  \033[1;32m\033[1m CC\033[0m       \033[1;32m\033[1m O        O\033[0m \033[1;32m\033[1mPPPPPP\033[0m
-  \033[1;32m\033[1m CC\033[0m       \033[1;32m\033[1m OO      OO\033[0m \033[1;32m\033[1mPP\033[0m
-  \033[1;32m\033[1m  CCC   CC\033[0m   \033[1;32m\033[1mOO  OO\033[0m \033[1;32m\033[1m  PP\033[0m
-  \033[1;32m\033[1m   CCCCCC\033[0m    \033[1;32m\033[1m OOOO\033[0m \033[1;32m\033[1m   PP\033[0m
-
-\033[1;33m***\033[0m \033[1;4m\033[1;32mCOMMON OPERATING PICTURE\033[0m \033[1;33m***\033[0m
-"
 echo "===================================="
 echo "=== Prerequisite Setup Complete! ==="
 echo ""
-echo "To Finalize COP Setup Follow:"
+echo "To Finalize DSP Setup Follow:"
 echo ""
 echo "1. Reboot or log out/in for Docker group and ~/.bashrc changes to take effect."
 echo "2. Continue to Step 1 in startupInstructions.md/README.md to start the COP services."
