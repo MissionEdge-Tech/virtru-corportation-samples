@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  tdf-trino:
+    image: ${S4_IMAGE:-localhost:5000/virtru/tdf-trino:latest}
+    container_name: tdf-trino
+    restart: always
+    command: ["trino", "--server", "trino:8080", "--catalog", "postgresql", "--schema", "public"]
+    # depends_on:
+    #   postgres-db:
+    #     condition: service_healthy
+    #     restart: true
+    # extra_hosts:
+    #   - "${KEYCLOAK_HOSTNAME:-local-dsp.virtru.com}:host-gateway"
+    #   - "${PLATFORM_HOSTNAME:-local-dsp.virtru.com}:host-gateway"
+    #   - "${LOCALSTACK_HOSTNAME:-local-s4.virtru.com}:host-gateway" 
+    #   - "cop-demo.${LOCALSTACK_HOSTNAME:-local-s4.virtru.com}:host-gateway"
+    ports:
+      - "28080:8080"
+    volumes:
+      - ./trino-config/catalog:/etc/trino/catalog
+    # networks:
+    #   - trino-network
+
+  # postgres-db:
+  #   image: postgres:latest
+  #   container_name: postgres-db
+  #   environment:
+  #     POSTGRES_USER: trino_user
+  #     POSTGRES_PASSWORD: password123
+#     networks:
+#       - trino-network
+
+# networks:
+#   trino-network:
+#     driver: bridge

@@ -135,3 +135,11 @@ services:
     extends:
       file: ./compose/docker-compose.secure-object-proxy.yaml
       service: s4
+
+#================================================================
+# Start Trino
+#----------------------------------------------------------------
+  tdf-trino:
+    extends:
+      file: ./compose/docker-compose.trino.yaml
+      service: tdf-trino
