@@ -81,8 +81,8 @@ ENV PATH="/app/venv/bin:/usr/bin:${PATH}"
 ENV PYTHONPATH="/app/venv/lib/python3.14/site-packages"
 
 # 6. CRITICAL: Tell Go exactly where to find the certs
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-ENV SSL_CERT_DIR=/etc/ssl/certs
+#ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+#ENV SSL_CERT_DIR=/etc/ssl/certs
 
 WORKDIR /app
 ENTRYPOINT ["/usr/bin/dsp-cop", "serve"]

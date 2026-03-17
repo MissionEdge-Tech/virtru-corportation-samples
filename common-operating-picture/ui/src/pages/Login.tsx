@@ -95,7 +95,7 @@ export function Login() {
         <Wrapper>
           <BigAvatar>L</BigAvatar>
           <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Welcome back!
+            Welcome back - Test 6!
           </Typography>
           <Typography component="h2" variant="body1" align="center">
             Sign in to your account to continue <br /> <br />

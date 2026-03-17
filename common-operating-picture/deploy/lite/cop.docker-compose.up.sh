@@ -33,8 +33,8 @@ DOCKER_CONFIG="$APP_ROOT/config.docker.yaml"
 cp "$APP_ROOT/config.example.yaml" "$DOCKER_CONFIG"
 
 sed -i '' -e 's|localhost:15432|cop-db:5432|g' "$DOCKER_CONFIG"
-sed -i '' -e 's|public_server_host: local-dsp.virtru.com:5002|public_server_host: https://local-dsp.virtru.com:5002|g' "$DOCKER_CONFIG"
-sed -i '' -e 's|public_static_host: local-dsp.virtru.com:5001|public_static_host: https://local-dsp.virtru.com:5001|g' "$DOCKER_CONFIG"
+sed -i '' -e 's|public_server_host: cop.demo.missionedgetechnologies.com:5002|public_server_host: https://cop.demo.missionedgetechnologies.com:5002|g' "$DOCKER_CONFIG"
+sed -i '' -e 's|public_static_host: cop.demo.missionedgetechnologies.com:5001|public_static_host: https://cop.demo.missionedgetechnologies.com:5001|g' "$DOCKER_CONFIG"
 
 # start the docker stack in detached mode
 if docker compose version &> /dev/null ; then
@@ -46,8 +46,8 @@ else
 fi
 
 echo ""
-echo "✅ The COP application is now available at: https://local-dsp.virtru.com:5001"
-echo "✅ The COP backend (go/grpc) is now running at: https://local-dsp.virtru.com:5002"
+echo "✅ The COP application is now available at: https://cop.demo.missionedgetechnologies.com:5001"
+echo "✅ The COP backend (go/grpc) is now running at: https://cop.demo.missionedgetechnologies.com:5002"
 echo "✅ The COP database is now available at: local-dsp.virtru.com:15433"
 echo ""
 echo "⚠️ Be sure to import '$APP_ROOT/deploy/release-assets/keycloak-client.json' into the opentdf realm of your keycloak instance before continuing. ⚠️"

@@ -58,8 +58,8 @@ echo "preparing application config for docker"
 DOCKER_CONFIG="$ZIP_DIR/config.docker.yaml"
 cp "$APP_ROOT/config.example.yaml" "$DOCKER_CONFIG"
 sed -i -e 's|localhost:15432|cop-db:5432|g' "$DOCKER_CONFIG"
-yq -i '(.service.public_server_host) = "https://local-dsp.virtru.com:5002"' "$DOCKER_CONFIG"
-yq -i '(.service.public_static_host) = "https://local-dsp.virtru.com:5001"' "$DOCKER_CONFIG"
+yq -i '(.service.public_server_host) = "https://cop.demo.missionedgetechnologies.com:5002"' "$DOCKER_CONFIG"
+yq -i '(.service.public_static_host) = "https://cop.demo.missionedgetechnologies.com:5001"' "$DOCKER_CONFIG"
 
 # gather mock database assets
 echo "gathering mock database assets"
