@@ -45,8 +45,8 @@ else
 fi
 
 echo ""
-echo "✅ The COP Application is now available at: https://cop.demo.missionedgetechnologies.com:5001"
-echo "✅ The COP backend (grpc) is now running at: https://cop.demo.missionedgetechnologies.com:5002"
+echo "✅ The COP Application is now available at: https://local-dsp.virtru.com:5001"
+echo "✅ The COP backend (grpc) is now running at: https://local-dsp.virtru.com:5002"
 echo "✅ The COP database is now available at: local-dsp.virtru.com:15433"
 echo ""
 echo "⚠️ Be sure to import '$SCRIPT_DIR/keycloak-client.json' into the opentdf realm of your keycloak instance before continuing. ⚠️"

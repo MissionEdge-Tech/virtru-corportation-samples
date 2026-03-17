@@ -60,8 +60,8 @@ type Config struct {
 	Service struct {
 		// The public host and port is used by the web interface to connect to the server. In many
 		// environments this will not be the same as the hostname and port the server is listening on.
-		PublicServerHost string `mapstructure:"public_server_host" default:"cop.demo.missionedgetechnologies.com:5002"`
-		PublicStaticHost string `mapstructure:"public_static_host" default:"cop.demo.missionedgetechnologies.com:5001"`
+		PublicServerHost string `mapstructure:"public_server_host" default:"local-dsp.virtru.com:5002"`
+		PublicStaticHost string `mapstructure:"public_static_host" default:"local-dsp.virtru.com:5001"`
 
 		GrpcPort         string `mapstructure:"grpc_port" default:"5002"`
 		GrpcWriteTimeout int    `mapstructure:"grpc_write_timeout" default:"60"`

@@ -42,10 +42,10 @@ const config: UserConfig = {
 // if dev server
 if (process.env.NODE_ENV === 'development') {
   config.server = {
-    host: 'cop.demo.missionedgetechnologies.com',
+    host: 'local-dsp.virtru.com',
     https: {
-      key: fs.readFileSync('../dsp-keys/cop.demo.missionedgetechnologies.com.key.pem'),
-      cert: fs.readFileSync('../dsp-keys/cop.demo.missionedgetechnologies.com.pem'),
+      key: fs.readFileSync('../dsp-keys/local-dsp.virtru.com.key.pem'),
+      cert: fs.readFileSync('../dsp-keys/local-dsp.virtru.com.pem'),
     },
   };
 }
