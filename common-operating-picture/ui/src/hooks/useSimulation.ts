@@ -19,10 +19,9 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
   // Use a ref to ensure the auto-check only triggers once per mount
   const hasChecked = useRef(false);
 
-  /**
-   * Checks the current status of the simulation process on the server.
-   * Expects the backend to return ExitCode: 0 and "STATUS:true" in the output if running.
-   */
+  
+  // Checks the current status of the simulation process on the server.
+  // Expects the backend to return ExitCode: 0 and "STATUS:true" in the output if running. 
   const checkStatus = useCallback(async () => {
     // Only attempt the RPC call if we have an active session/token
     if (!user?.accessToken) return;
@@ -50,10 +49,9 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
     }
   }, [runPythonScript, onStartSuccess, user?.accessToken]);
 
-  /**
-   * Effect: Trigger the initial status check on mount or page reload.
-   * It waits specifically for the user/token to be available to avoid 401 errors.
-   */
+  
+  // Effect: Trigger the initial status check on mount or page reload.
+  // It waits specifically for the user/token to be available to avoid 401 errors.
   useEffect(() => {
     if (!hasChecked.current && user?.accessToken) {
       hasChecked.current = true;
@@ -61,9 +59,7 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
     }
   }, [user?.accessToken, checkStatus]);
 
-  /**
-   * Starts the simulation and seeding process.
-   */
+  // Starts the simulation and seeding process.   
   const start = useCallback(async () => {
     setIsStarting(true);
     setLogs('Starting simulation...');
@@ -82,9 +78,7 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
     }
   }, [runPythonScript, onStartSuccess]);
 
-  /**
-   * Stops the running simulation process.
-   */
+  // Stops the running simulation process.
   const stop = useCallback(async () => {
     setIsStopping(true);
     try {
@@ -102,9 +96,8 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
     }
   }, [runPythonScript]);
 
-  /**
-   * Clears the simulation log output.
-   */
+  
+  //Clears the simulation log output. 
   const clearLogs = useCallback(() => setLogs(null), []);
 
   return {
@@ -116,6 +109,6 @@ export function useSimulation({ onStartSuccess }: UseSimulationProps = {}) {
     start,
     stop,
     clearLogs,
-    checkStatus, // Exported for manual re-checks if needed
+    checkStatus,
   };
 }

@@ -774,7 +774,6 @@ func (s *TdfObjectServer) handleSimulationStatus(ctx context.Context) (*connect.
 
 	slog.InfoContext(ctx, "Status Check Executed", slog.Bool("isRunning", isRunning))
 
-	// ALWAYS return ExitCode 0 because the "Status Check" script succeeded in checking
 	return connect.NewResponse(&tdf_objectv1.RunPythonScriptResponse{
 		Output:   fmt.Sprintf("STATUS:%v", isRunning), // Use a prefix for easy parsing
 		ExitCode: 0,

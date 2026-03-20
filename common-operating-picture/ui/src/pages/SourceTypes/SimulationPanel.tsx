@@ -5,7 +5,7 @@ interface SimulationPanelProps {
   isStarting: boolean;
   isStopping: boolean;
   isRunning: boolean;
-  isChecking: boolean; // The check feature addition
+  isChecking: boolean;
   logs: string | null;
   onStart: () => void;
   onStop: () => void;
