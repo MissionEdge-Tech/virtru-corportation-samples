@@ -101,6 +101,12 @@ services:
       file: ./compose/docker-compose.nifi.yaml
       service: nifi
 
+  nifi-bootstrap:
+    profiles: [nifi]
+    extends:
+      file: ./compose/docker-compose.nifi.yaml
+      service: nifi-bootstrap
+
   # tagging:
   #   profiles: [nifi]
   #   extends:
@@ -135,3 +141,6 @@ services:
     extends:
       file: ./compose/docker-compose.secure-object-proxy.yaml
       service: s4
+
+volumes:
+  nifi-conf:
