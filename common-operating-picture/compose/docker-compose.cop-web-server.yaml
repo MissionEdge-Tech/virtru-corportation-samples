@@ -3,7 +3,7 @@ services:
   cop-web-server:
     build:
       context: ../
-      dockerfile: ./cop.Dockerfile
+      dockerfile: ./docker/cop.Dockerfile
     image: virtru-dsp-cop-web-server:dev
     restart: always
     environment:

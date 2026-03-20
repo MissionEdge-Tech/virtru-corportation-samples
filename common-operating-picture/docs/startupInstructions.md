@@ -10,7 +10,7 @@ Before beginning, ensure your environment meets the following requirements.
 To install necessary dependencies automatically, run the provided script:
 
 ```bash
-./ubuntu_cop_prereqs_cop.sh
+./scripts/ops/ubuntu_cop_prereqs_cop.sh
 
 # Reboot after running script for some changes to take effect
 reboot
@@ -45,7 +45,7 @@ You need SSL certificates for local development.
 Run the key generation script:
 
 ```bash
-./ubuntu_cop_keys.sh
+./scripts/ops/ubuntu_cop_keys.sh
 ```
 
 **Option B: Make Command**
@@ -151,7 +151,7 @@ pip install -r requirements.txt
 ```bash
 # Run seeding script to populate database
 # 50 is the standard number of objects that the script will inset but is configurable via NUM_RECORDS variable
-python3 seed_data.py
+python3 scripts/seed/seed_data.py
 ```
 
 ```bash
@@ -162,11 +162,11 @@ python3 seed_data.py
 
 # For live data from OpenSky Network login to https://opensky-network.org/, download credentials file (credentials.json),
 # place the file in the base director (where the sim_data.py script is located) and then run:
-python3 sim_data.py
+python3 scripts/seed/sim_data.py
 
 # For a fake simulation that does not require the credentials file or use account credits with OpenSky run this script
 # for simulated movement:
-python3 sim_data_fake_opensky.py
+python3 scripts/seed/sim_data_fake_opensky.py
 ```
 
 ### Troubleshooting & Verification Checklist

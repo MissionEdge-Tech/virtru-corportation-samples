@@ -10,7 +10,7 @@ echo "=== Installing CA Authority ==="
 if ! command -v mkcert &> /dev/null
 then
     echo "ERROR: mkcert is not installed."
-    echo "Please ensure all prerequisites are installed. Run the ./ubuntu_cop_prereqs_cop.sh script."
+    echo "Please ensure all prerequisites are installed. Run the ./scripts/ops/ubuntu_cop_prereqs_cop.sh script."
     exit 1
 fi
 mkcert -install
