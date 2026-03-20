@@ -2,7 +2,7 @@
 <template encoding-version="1.3">
     <description></description>
     <groupId>fd14aee6-019b-1000-3bdf-0aa3f5acd797</groupId>
-    <name>working</name>
+    <name>test1</name>
     <snippet>
         <processGroups>
             <id>68c325f8-6b46-3d72-0000-000000000000</id>
@@ -17,7 +17,6 @@
                 <connections>
                     <id>295f75c0-95da-3e6a-0000-000000000000</id>
                     <parentGroupId>68c325f8-6b46-3d72-0000-000000000000</parentGroupId>
-                    <versionedComponentId>295f75c0-95da-3e6a-9615-af1a1c460c4b</versionedComponentId>
                     <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
                     <backPressureObjectThreshold>10000</backPressureObjectThreshold>
                     <destination>
@@ -38,7 +37,6 @@
                         <groupId>68c325f8-6b46-3d72-0000-000000000000</groupId>
                         <id>ade07be9-021a-3c16-0000-000000000000</id>
                         <type>PROCESSOR</type>
-                        <versionedComponentId>ade07be9-021a-3c16-9896-95aae834ab6f</versionedComponentId>
                     </source>
                     <zIndex>0</zIndex>
                 </connections>
@@ -72,14 +70,12 @@
                 <connections>
                     <id>8a195e41-8125-376d-0000-000000000000</id>
                     <parentGroupId>68c325f8-6b46-3d72-0000-000000000000</parentGroupId>
-                    <versionedComponentId>8a195e41-8125-376d-8403-ab51e9748d59</versionedComponentId>
                     <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
                     <backPressureObjectThreshold>10000</backPressureObjectThreshold>
                     <destination>
                         <groupId>68c325f8-6b46-3d72-0000-000000000000</groupId>
                         <id>ade07be9-021a-3c16-0000-000000000000</id>
                         <type>PROCESSOR</type>
-                        <versionedComponentId>ade07be9-021a-3c16-9896-95aae834ab6f</versionedComponentId>
                     </destination>
                     <flowFileExpiration>0 sec</flowFileExpiration>
                     <labelIndex>1</labelIndex>
@@ -126,7 +122,6 @@
                 <connections>
                     <id>c45c4ae3-8c82-35fa-0000-000000000000</id>
                     <parentGroupId>68c325f8-6b46-3d72-0000-000000000000</parentGroupId>
-                    <versionedComponentId>c45c4ae3-8c82-35fa-aece-1e04ad822868</versionedComponentId>
                     <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
                     <backPressureObjectThreshold>10000</backPressureObjectThreshold>
                     <destination>
@@ -147,7 +142,6 @@
                         <groupId>68c325f8-6b46-3d72-0000-000000000000</groupId>
                         <id>ade07be9-021a-3c16-0000-000000000000</id>
                         <type>PROCESSOR</type>
-                        <versionedComponentId>ade07be9-021a-3c16-9896-95aae834ab6f</versionedComponentId>
                     </source>
                     <zIndex>0</zIndex>
                 </connections>
@@ -3865,7 +3859,6 @@ sample data policy attributes</label>
                         <x>264.0</x>
                         <y>240.0</y>
                     </position>
-                    <versionedComponentId>ade07be9-021a-3c16-9896-95aae834ab6f</versionedComponentId>
                     <bundle>
                         <artifact>nifi-standard-nar</artifact>
                         <group>org.apache.nifi</group>
@@ -3951,5 +3944,5 @@ sample data policy attributes</label>
             <variables/>
         </processGroups>
     </snippet>
-    <timestamp>03/20/2026 02:00:05 UTC</timestamp>
+    <timestamp>03/09/2026 03:27:40 UTC</timestamp>
 </template>
