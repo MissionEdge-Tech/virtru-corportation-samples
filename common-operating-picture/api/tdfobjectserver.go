@@ -636,7 +636,7 @@ func (s *TdfObjectServer) RunPythonScript(
 func (s *TdfObjectServer) handleSimulationStart(ctx context.Context) (*connect.Response[tdf_objectv1.RunPythonScriptResponse], error) {
 	var combinedOutput strings.Builder
 
-	seedScript := "seed_data.py"
+	seedScript := "scripts/seed/seed_data.py"
 	slog.InfoContext(ctx, "Running seed script", slog.String("script", seedScript))
 
 	start := time.Now()
@@ -667,7 +667,7 @@ func (s *TdfObjectServer) handleSimulationStart(ctx context.Context) (*connect.R
 
 	slog.InfoContext(ctx, "Seed script completed", slog.Duration("duration", duration))
 
-	simScript := "sim_data_fake_opensky.py"
+	simScript := "scripts/seed/sim_data_fake_opensky.py"
 
 	simMu.Lock()
 	defer simMu.Unlock()

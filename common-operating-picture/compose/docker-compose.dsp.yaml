@@ -30,7 +30,7 @@ services:
   dsp-keycloak-provisioning:
     build:
       context: ../
-      dockerfile: ./dev.dsp.Dockerfile
+      dockerfile: ./docker/dev.dsp.Dockerfile
     command:
       [
         'tructl',
@@ -53,7 +53,7 @@ services:
   dsp:
     build:
       context: ../
-      dockerfile: ./dev.dsp.Dockerfile
+      dockerfile: ./docker/dev.dsp.Dockerfile
     command: ['start']
     ports:
       - '8080:8080'
@@ -96,7 +96,7 @@ services:
   dsp-provision-federal-policy:
     build:
       context: ../
-      dockerfile: ./dev.dsp.Dockerfile
+      dockerfile: ./docker/dev.dsp.Dockerfile
     command: [
         'tructl',
         'provision',
@@ -120,7 +120,7 @@ services:
   dsp-cli-user:
     build:
       context: ../
-      dockerfile: ./dev.dsp.Dockerfile
+      dockerfile: ./docker/dev.dsp.Dockerfile
     # An entrypoint for the packaged DSP container, which waits online for developers to 
     # connect to it using a shell. This is useful for debugging and running commands in the
     # development network.

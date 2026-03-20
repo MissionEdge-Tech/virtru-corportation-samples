@@ -11,7 +11,7 @@ The processor supports using the SSLContextService in NiFi to manage self-signed
 Example adding all certs in the truststore directory to a jks truststore:
 
 ``` shell
-./build_truststore.sh
+./scripts/build/build_truststore.sh
 ```
 
 List trusted certs

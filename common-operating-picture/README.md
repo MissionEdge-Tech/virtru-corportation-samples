@@ -87,10 +87,10 @@ For convenience, the `make toolcheck` script checks if you have the necessary de
 
 To demonstrate the capabilities of DSP, there are two root-level files to provision the platform.
 
-1. [`sample.federal_policy.yaml` DSP Policy](./sample.federal_policy.yaml)
+1. [`sample.federal_policy.yaml` DSP Policy](./config/samples/sample.federal_policy.yaml)
     * Attributes (a Namespace, Definitions, Values)
     * Subject Mappings to entitle users and clients
-2. [`sample.keycloak.yaml` Users and Clients](./sample.keycloak.yaml) to be loaded into Keycloak as the demo identityProvider (idP)
+2. [`sample.keycloak.yaml` Users and Clients](./config/samples/sample.keycloak.yaml) to be loaded into Keycloak as the demo identityProvider (idP)
 
 > [!NOTE]
 > PostGIS uses a [community-maintained image](https://github.com/ImreSamu/docker-postgis#debian---bookworm--recommended)
@@ -103,7 +103,7 @@ To demonstrate the capabilities of DSP, there are two root-level files to provis
 To install necessary dependencies automatically, run the provided script:
 
    ```bash
-   ./ubuntu_cop_prereqs_cop.sh
+   ./scripts/ops/ubuntu_cop_prereqs_cop.sh
 
    # Reboot after running script for some changes to take effect
    reboot
@@ -138,7 +138,7 @@ You need SSL certificates for local development.
 Run the key generation script:
 
 ```bash
-./ubuntu_cop_keys.sh
+./scripts/ops/ubuntu_cop_keys.sh
 ```
 
 **Option B: Make Command**
@@ -266,7 +266,7 @@ Following the successful building of COP:
    ```bash
    # Run seeding script to populate database
    # 50 is the standard number of objects that the script will inset but is configurable via NUM_RECORDS variable
-   python3 seed_data.py
+   python3 scripts/seed/seed_data.py
    ```
 
    ```bash
@@ -277,11 +277,11 @@ Following the successful building of COP:
 
    # For live data from OpenSky Network login to https://opensky-network.org/, download credentials file (credentials.json),
    # place the file in the base director (where the sim_data.py script is located) and then run:
-   python3 sim_data.py
+   python3 scripts/seed/sim_data.py
 
    # For a fake simulation that does not require the credentials file or use account credits with OpenSky run this script
    # for simulated movement:
-   python3 sim_data_fake_opensky.py
+   python3 scripts/seed/sim_data_fake_opensky.py
    ```
 
 ### Troubleshooting & Verification Checklist
@@ -341,7 +341,7 @@ DSP-COP supports two authentication flows:
 To enable the Keycloak authentication flow, set the following value in the `ui/.env`
    - `VITE_DSP_KC_DIRECT_AUTH=true`
 
-To enable and configure x509 based login, see `x509.md`
+To enable and configure x509 based login, see `docs/x509.md`
 
 ---
 

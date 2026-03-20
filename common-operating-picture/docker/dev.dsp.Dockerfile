@@ -24,8 +24,8 @@ COPY ./dsp-keys/kas-ec-private.pem  /work/dsp-keys/kas-ec-private.pem
 COPY ./dsp-keys/kas-cert.pem        /work/dsp-keys/kas-cert.pem
 COPY ./dsp-keys/kas-private.pem     /work/dsp-keys/kas-private.pem
 
-COPY ./sample.keycloak.yaml         /work/samples/defaults/keycloak_data.yaml
-COPY ./sample.federal_policy.yaml   /work/samples/defaults/federal_policy.yaml
+COPY ./config/samples/sample.keycloak.yaml         /work/samples/defaults/keycloak_data.yaml
+COPY ./config/samples/sample.federal_policy.yaml   /work/samples/defaults/federal_policy.yaml
 COPY ./dsp.yaml                     /work/dsp.yaml
 
 # quick checks (runs in prep stage which has /bin/sh)

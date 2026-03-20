@@ -22,7 +22,7 @@ dev-certs:
 	@mkcert -cert-file $(DSP_KEYS_DIR)/local-dsp.virtru.com.pem -key-file $(DSP_KEYS_DIR)/local-dsp.virtru.com.key.pem local-dsp.virtru.com "*.local-dsp.virtru.com" localhost
 	@./.github/scripts/init-temp-keys.sh
 	@./.github/scripts/x509-temp-keys.sh
-	@./build_truststore_local.sh
+	@./scripts/build/build_truststore_local.sh
 	@cp ./dsp-keys/local-dsp.virtru.com.pem ./nifi/truststore
 
 download-otdf-nifi:
