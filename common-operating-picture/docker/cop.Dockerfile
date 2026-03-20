@@ -24,7 +24,7 @@ COPY ui/package.json ui/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --cache /root/.npm
 COPY ui/ .
-COPY /sample.federal_policy.yaml /sample.federal_policy.yaml
+COPY config/samples/sample.federal_policy.yaml /sample.federal_policy.yaml
 RUN npm run build
 
 # --- STAGE 2: GEOS Libs Build ---
@@ -82,7 +82,7 @@ COPY --from=python-builder /app/venv /app/venv
 
 # 4. Bring in Go Binary and Python Scripts
 COPY --from=builder /app/dsp-cop /usr/bin/
-COPY seed_data.py read_s4.py sim_data_fake_opensky.py sim_data.py /app/
+COPY scripts/seed/seed_data.py scripts/seed/read_s4.py scripts/seed/sim_data_fake_opensky.py scripts/seed/sim_data.py /app/scripts/seed/
 
 # 5. Environment
 ENV PATH="/app/venv/bin:/usr/bin:${PATH}"
