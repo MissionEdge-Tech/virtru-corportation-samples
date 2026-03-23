@@ -26,6 +26,8 @@ from urllib.parse import urljoin
 # ---------------------------------------------------------------------------
 NIFI_URL = os.environ.get("NIFI_URL", "http://nifi:8080")
 TEMPLATE_FILE = os.environ.get("TEMPLATE_FILE", "/flows/working_flow.xml")
+PLATFORM_HOSTNAME = os.environ.get("PLATFORM_HOSTNAME", "")
+FLOW_HOSTNAME_PLACEHOLDER = os.environ.get("FLOW_HOSTNAME_PLACEHOLDER", "local-dsp.virtru.com")
 
 CLIENT_SECRET = os.environ.get("TDF_FLOW_CLIENT_SECRET", "")
 DB_PASSWORD = os.environ.get("TDFDB_DATABASE_PASSWORD", "")
@@ -147,9 +149,28 @@ def get_existing_template_id():
     return None
 
 
+def prepare_template():
+    """Substitute PLATFORM_HOSTNAME into the flow XML if provided, return path to use."""
+    if not PLATFORM_HOSTNAME or PLATFORM_HOSTNAME == FLOW_HOSTNAME_PLACEHOLDER:
+        return TEMPLATE_FILE
+
+    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    modified = content.replace(FLOW_HOSTNAME_PLACEHOLDER, PLATFORM_HOSTNAME)
+
+    tmp_path = "/tmp/working_flow_substituted.xml"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(modified)
+
+    print(f"  Substituted '{FLOW_HOSTNAME_PLACEHOLDER}' -> '{PLATFORM_HOSTNAME}' in flow XML.", flush=True)
+    return tmp_path
+
+
 def upload_template():
-    print(f"Uploading template: {TEMPLATE_FILE}", flush=True)
-    result = upload_template_multipart(TEMPLATE_FILE)
+    template_path = prepare_template()
+    print(f"Uploading template: {template_path}", flush=True)
+    result = upload_template_multipart(template_path)
     if result is None:
         template_id = get_existing_template_id()
         print(f"  Using existing template ID: {template_id}", flush=True)

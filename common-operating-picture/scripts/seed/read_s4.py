@@ -16,7 +16,9 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 # --- Configuration (Matches your Seed Script) ---
-KC_URL = os.getenv("KEYCLOAK_URL", "https://local-dsp.virtru.com:8443/auth")
+_hostname = os.getenv("PLATFORM_HOSTNAME", "local-dsp.virtru.com")
+_https_port = os.getenv("PLATFORM_HTTPS_PORT", "8443")
+KC_URL = os.getenv("KEYCLOAK_URL", f"https://{_hostname}:{_https_port}/auth")
 KC_REALM = os.getenv("REALM", "opentdf")
 KC_USER = os.getenv("KC_USER", "top-secret-gbr-bbb")
 KC_PASS = os.getenv("PASSWORD", "testuser123")
