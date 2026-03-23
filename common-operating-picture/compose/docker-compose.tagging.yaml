@@ -26,4 +26,4 @@ services:
       - ../config/fed-config.go.yaml:/tagging-pdp/config/tagging_config.yaml
       - ../truststore:/tagging-pdp/truststore # mounts truststore
     extra_hosts:
-      - "${PLATFORM_HOSTNAME}:172.17.0.1"
+      - "${PLATFORM_HOSTNAME}:host-gateway"

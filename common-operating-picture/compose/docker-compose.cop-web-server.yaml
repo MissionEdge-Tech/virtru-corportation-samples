@@ -47,4 +47,4 @@ services:
         condition: service_healthy
         restart: true
     extra_hosts:
-      - "${PLATFORM_HOSTNAME}:172.17.0.1"
+      - "${PLATFORM_HOSTNAME}:host-gateway"
