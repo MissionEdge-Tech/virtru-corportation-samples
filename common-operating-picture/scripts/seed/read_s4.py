@@ -25,16 +25,18 @@ KC_PASS = os.getenv("PASSWORD", "testuser123")
 CLIENT_ID = 'secure-object-proxy-test'
 CLIENT_SECRET = 'secret'
 
-S4_STS_URL = "http://virtru-dsp-cop-dev-s4-1:7070"
-S4_S3_URL = "http://virtru-dsp-cop-dev-s4-1:7070" 
+_s4_port = os.getenv("S4_PORT", "7070")
+_s4_base = os.getenv("S4_ENDPOINT", f"https://s4:{_s4_port}")
+S4_STS_URL = _s4_base
+S4_S3_URL = _s4_base
 S4_BUCKET = "cop-demo"
 
 # --- DB Configs ---
 DB_NAME = "postgres"
 DB_USER = "postgres"
 DB_PASSWORD = "changeme"
-DB_HOST = "localhost"
-DB_PORT = 15432
+DB_HOST = os.getenv("DB_HOST", "cop-db")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
 
 # --- Authentication Logic ---
 
