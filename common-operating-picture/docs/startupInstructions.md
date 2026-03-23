@@ -1,6 +1,6 @@
 # Installation Guide
 
-Follow these steps to set up the Data Security Platform (DSP) local development environment.
+Follow these steps to set up the Data Security Platform (DSP) COP environment. The instructions cover both **local development** (`local-dsp.virtru.com`) and **GCP deployment** (`cop.demo.missionedgetechnologies.com`).
 
 ### Prerequisites
 
@@ -37,24 +37,21 @@ reboot
 
 ---
 
-### Step 1: Generate Local Certificates (Mkcert)
+### Step 1: Generate Certificates
 
-You need SSL certificates for local development.
+**Local development** uses self-signed certs via mkcert. **GCP deployment** uses real certs issued for `cop.demo.missionedgetechnologies.com` — place the `.pem` and `.key.pem` files in `dsp-keys/` and skip this step.
 
-**Option A: Script**
-Run the key generation script:
+**Option A: Script (local dev)**
 
 ```bash
 ./scripts/ops/ubuntu_cop_keys.sh
 ```
 
-**Option B: Make Command**
-** Note: you can use `'make dev-certs'` as a shortcut to generate the development certs **
+**Option B: Make Command (local dev)**
 
-**Currently NonFunctional - Use the script above**
+> Note: `make dev-certs` is currently non-functional — use the script above.
 
 ```bash
-# Make command
 make dev-certs
 ```
 
@@ -108,21 +105,42 @@ curl -X GET http://localhost:5000/v2/virtru/data-security-platform/tags/list
 
 Use Docker Compose to build and start the environment.
 
+**Set up your environment file:**
+
+The env files are not committed to the repo. Copy the example file for your target environment and fill in any values specific to your deployment.
+
+```bash
+# For local development
+cp env/local.env.example env/local.env
+
+# For GCP deployment
+cp env/default.env.example env/default.env
+```
+
 **Start the environment:**
 
 ```bash
-docker compose --env-file env/default.env -f docker-compose.dev.yaml up --build --force-recreate
+# Local development
+docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 down && \
+docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
+
+# GCP deployment
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 down && \
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
 ```
 
-Local COP Application URL: https://local-dsp.virtru.com:5001/
+**Application URLs:**
+- Local: https://local-dsp.virtru.com:5001/
+- GCP: https://cop.demo.missionedgetechnologies.com:5001/
 
 **Stop the environment:**
 
-The following will stop the enviroment and COP application. Crtl + c in the terminal will also stop the containers however it is recommended
-to also run the following down command as it will cleanup the container remnants.
-
 ```bash
-docker compose --env-file env/default.env -f docker-compose.dev.yaml down
+# Local development
+docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 down
+
+# GCP deployment
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 down
 ```
 
 ### Step 5. Seeding Vehicle Data and Live Data Flow Simulation
@@ -151,7 +169,14 @@ pip install -r requirements.txt
 ```bash
 # Run seeding script to populate database
 # 50 is the standard number of objects that the script will inset but is configurable via NUM_RECORDS variable
+
+# Local (defaults connect to cop-db:5432 and https://s4:7070 via Docker network)
 python3 scripts/seed/seed_data.py
+
+# GCP — override endpoints to reach services from the host machine
+DB_HOST=localhost DB_PORT=<mapped-port> \
+  S4_ENDPOINT=https://cop.demo.missionedgetechnologies.com:7070 \
+  python3 scripts/seed/seed_data.py
 ```
 
 ```bash
@@ -173,6 +198,8 @@ python3 scripts/seed/sim_data_fake_opensky.py
 
 If you encounter issues, double-check the following:
 
-- **dsp.yaml:** Ensure this file exists in your working directory.
-- **rootCA.cert:** Ensure the root CA certificate was copied correctly during the setup.
+- **Config files:** Ensure `config.yaml` (GCP) or `config.local.yaml` (local) exists in the project root, and that `compose/s4-dev-localstack.yaml` (GCP) or `compose/s4-dev-localstack.local.yaml` (local) exists.
+- **Env files:** Ensure `env/default.env` (GCP) or `env/local.env` (local) exists — these are gitignored, copy from the `.example` files.
+- **rootCA.pem:** Ensure `dsp-keys/rootCA.pem` was generated correctly during the cert setup step.
 - **Permissions:** Verify that the certificates in `dsp-keys` have `chmod 755` permissions.
+- **GCP Firewall:** Ensure ports 5001, 5002, 7070, 8080, and 8443 are open in the GCP firewall rules for your VM.

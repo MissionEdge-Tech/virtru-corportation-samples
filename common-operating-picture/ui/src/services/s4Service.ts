@@ -2,7 +2,7 @@ import { STSClient, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 // S4 Configuration
-const S4_ENDPOINT = 'http://localhost:7070';
+const S4_ENDPOINT = import.meta.env.VITE_S4_ENDPOINT || 'http://localhost:7070';
 const S4_REGION = 'us-east-1';
 const ROLE_ARN = 'arn:aws:iam::xxxx:xxx/xxx';
 
