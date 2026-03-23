@@ -20,7 +20,10 @@ from botocore.config import Config
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- User/Auth Configs ---
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "https://local-dsp.virtru.com:8443/auth")
+_hostname = os.getenv("PLATFORM_HOSTNAME", "local-dsp.virtru.com")
+_https_port = os.getenv("PLATFORM_HTTPS_PORT", "8443")
+_http_port = os.getenv("PLATFORM_HTTP_PORT", "8080")
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", f"https://{_hostname}:{_https_port}/auth")
 REALM = os.getenv("REALM", "opentdf")
 CLIENT_ID = 'secure-object-proxy-test'
 CLIENT_SECRET = 'secret'
@@ -46,9 +49,9 @@ FIXED_TDF_URI = None
 FIXED_CREATED_BY = KC_USER
 
 # --- DSP Configs ---
-PLATFORM_ENDPOINT = "https://local-dsp.virtru.com:8080"
+PLATFORM_ENDPOINT = os.getenv("PLATFORM_ENDPOINT", f"https://{_hostname}:{_http_port}")
 CA_CERT_PATH = "./dsp-keys/rootCA.pem"
-ISSUER_ENDPOINT = "https://local-dsp.virtru.com:8443/auth/realms/opentdf"
+ISSUER_ENDPOINT = os.getenv("ISSUER_ENDPOINT", f"https://{_hostname}:{_https_port}/auth/realms/opentdf")
 
 CLASSIFICATIONS = ["unclassified", "confidential", "secret", "topsecret"]
 
@@ -165,7 +168,7 @@ def get_sdk_instance(platform_endpoint, client_id, client_secret, ca_cert_path, 
 
 
 def encrypt_data(sdk, plaintext: str, attributes: list[str]) -> bytes:
-    target_kas_url = "https://local-dsp.virtru.com:8080/kas"
+    target_kas_url = os.getenv("KAS_TDF_URL", f"https://{_hostname}:{_http_port}/kas")
     kas_info = KASInfo(url=target_kas_url)
 
     config = NanoTDFConfig(
