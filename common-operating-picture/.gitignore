@@ -1,4 +1,5 @@
 # Local development
+env/*.env
 db-data
 dsp-keys
 proto_vendor/
