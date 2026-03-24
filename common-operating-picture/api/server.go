@@ -251,16 +251,10 @@ func createGrpcServer(server *TdfObjectServer) *http.Server {
 		MaxAge:         7200, // 2 hours in seconds
 	}).Handler(handlerNote))
 
-	var grpcHandler http.Handler = h2c.NewHandler(mux, &http2.Server{})
-	if server.Config.BasicAuthUsername != "" && server.Config.BasicAuthPassword != "" {
-		slog.Info("basic auth enabled for gRPC server")
-		grpcHandler = basicAuthMiddleware(server.Config.BasicAuthUsername, server.Config.BasicAuthPassword, grpcHandler)
-	}
-
 	// Return the HTTP server with the mux
 	return &http.Server{
 		Addr:         ":" + server.Config.Service.GrpcPort,
-		Handler:      grpcHandler,
+		Handler:      h2c.NewHandler(mux, &http2.Server{}),
 		WriteTimeout: time.Second * time.Duration(server.Config.Service.GrpcWriteTimeout),
 		ReadTimeout:  time.Second * time.Duration(server.Config.Service.GrpcReadTimeout),
 		IdleTimeout:  time.Second * time.Duration(server.Config.Service.GrpcIdleTimeout),
@@ -293,6 +287,12 @@ func basicAuthMiddleware(username, password string, next http.Handler) http.Hand
 	expectedPass := sha256.Sum256([]byte(password))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow CORS preflight requests through without auth
+		if r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		user, pass, ok := r.BasicAuth()
 		if !ok {
 			w.Header().Set("WWW-Authenticate", `Basic realm="DSP COP"`)
