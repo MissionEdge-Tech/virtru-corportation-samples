@@ -32,6 +32,7 @@ services:
       VITE_DSP_KC_CLIENT_ID: dsp-cop-client
       VITE_DSP_KC_DIRECT_AUTH: false
       VITE_FORM_SUBMIT_NANO_TDF: true
+      S4_ENDPOINT: ${S4_ENDPOINT:-https://s4:7070}
     volumes:
       - ../${COP_CONFIG_FILE:-config.local.yaml}:/etc/dsp-cop/config.yaml:ro
       - ../dsp-keys/rootCA.pem:/etc/ssl/certs/ca-certificates.crt
