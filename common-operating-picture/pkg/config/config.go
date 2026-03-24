@@ -55,6 +55,12 @@ type Config struct {
 	////////////////////////
 	//// Optional
 	////////////////////////
+
+	// Basic auth credentials to gate the entire application (browser prompt).
+	// If both are set, all requests require HTTP Basic Auth before anything loads.
+	BasicAuthUsername string `mapstructure:"basic_auth_username"`
+	BasicAuthPassword string `mapstructure:"basic_auth_password"`
+
 	LogLevel string `mapstructure:"log_level" default:"DEBUG"`
 
 	Service struct {
