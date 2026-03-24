@@ -12,6 +12,8 @@ geos-*.apk
 geos/
 # Sensitive or environment-specific configuration
 etc/
+config.yaml
+config.local.yaml
 
 # Nifi
 **/truststore
