@@ -47,12 +47,14 @@ reboot
 ./scripts/ops/ubuntu_cop_keys.sh
 ```
 
-**Option B: Make Command (local dev)**
-
-> Note: `make dev-certs` is currently non-functional — use the script above.
+**Option B: Make Command**
 
 ```bash
+# Local (default)
 make dev-certs
+
+# GCP or custom domain
+make dev-certs PLATFORM_HOSTNAME=cop.demo.missionedgetechnologies.com
 ```
 
 ### Step 2: Unpack the Bundle
@@ -107,7 +109,7 @@ Use Docker Compose to build and start the environment.
 
 **Set up your environment file:**
 
-The env files are not committed to the repo. Copy the example file for your target environment and fill in any values specific to your deployment.
+The env files are not committed to the repo. Copy the example file for your target environment and fill in any values specific to your deployment. The key variable is `PLATFORM_HOSTNAME` — all other URLs are derived from it.
 
 ```bash
 # For local development
@@ -116,6 +118,8 @@ cp env/local.env.example env/local.env
 # For GCP deployment
 cp env/default.env.example env/default.env
 ```
+
+To deploy on a new machine/domain, just change `PLATFORM_HOSTNAME` in your env file — no other URL changes needed.
 
 **Start the environment:**
 
@@ -130,8 +134,7 @@ docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile n
 ```
 
 **Application URLs:**
-- Local: https://local-dsp.virtru.com:5001/
-- GCP: https://cop.demo.missionedgetechnologies.com:5001/
+- `https://<PLATFORM_HOSTNAME>:5001/` (e.g. `https://local-dsp.virtru.com:5001/` for local, `https://cop.demo.missionedgetechnologies.com:5001/` for GCP)
 
 **Stop the environment:**
 
@@ -198,8 +201,9 @@ python3 scripts/seed/sim_data_fake_opensky.py
 
 If you encounter issues, double-check the following:
 
-- **Config files:** Ensure `config.yaml` (GCP) or `config.local.yaml` (local) exists in the project root, and that `compose/s4-dev-localstack.yaml` (GCP) or `compose/s4-dev-localstack.local.yaml` (local) exists.
-- **Env files:** Ensure `env/default.env` (GCP) or `env/local.env` (local) exists — these are gitignored, copy from the `.example` files.
+- **Config files:** Ensure `config.yaml` (GCP) or `config.local.yaml` (local) exists in the project root. Only `platform_endpoint` needs the hostname — all other URLs (KAS, IDP, TLS certs, public hosts) are derived automatically.
+- **Env files:** Ensure `env/default.env` (GCP) or `env/local.env` (local) exists — these are gitignored, copy from the `.example` files. Only `PLATFORM_HOSTNAME` needs to be set — other URLs are derived.
+- **S4 config:** The S4 proxy config is generated automatically at container startup from `PLATFORM_HOSTNAME` — no separate S4 config files needed.
 - **rootCA.pem:** Ensure `dsp-keys/rootCA.pem` was generated correctly during the cert setup step.
 - **Permissions:** Verify that the certificates in `dsp-keys` have `chmod 755` permissions.
 - **GCP Firewall:** Ensure ports 5001, 5002, 7070, 8080, and 8443 are open in the GCP firewall rules for your VM.

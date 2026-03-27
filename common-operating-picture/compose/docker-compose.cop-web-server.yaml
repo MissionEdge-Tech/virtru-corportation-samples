@@ -34,7 +34,7 @@ services:
       VITE_FORM_SUBMIT_NANO_TDF: true
       S4_ENDPOINT: ${S4_ENDPOINT:-https://s4:7070}
     volumes:
-      - ../${COP_CONFIG_FILE:-config.local.yaml}:/etc/dsp-cop/config.yaml:ro
+      - ../config.yaml:/etc/dsp-cop/config.yaml:ro
       - ../dsp-keys/rootCA.pem:/etc/ssl/certs/ca-certificates.crt
       - ../dsp-keys/${PLATFORM_HOSTNAME}.pem:/dsp-keys/${PLATFORM_HOSTNAME}.pem
       - ../dsp-keys/${PLATFORM_HOSTNAME}.key.pem:/dsp-keys/${PLATFORM_HOSTNAME}.key.pem
