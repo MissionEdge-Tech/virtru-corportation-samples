@@ -1,6 +1,6 @@
 # Installation Guide
 
-Follow these steps to set up the Data Security Platform (DSP) COP environment. The instructions cover both **local development** (`local-dsp.virtru.com`) and **GCP deployment** (`cop.demo.missionedgetechnologies.com`).
+Follow these steps to set up the Data Security Platform (DSP) COP environment.
 
 ### Prerequisites
 
@@ -30,32 +30,29 @@ reboot
      - [Make](https://formulae.brew.sh/formula/make)
      </details>
    - **Local DNS Configuration**
-     - Entry added into /etc/hosts
+     - Add an entry to /etc/hosts for your domain:
      - ```text
-       127.0.0.1    local-dsp.virtru.com
+       127.0.0.1    your-domain.com
        ```
 
 ---
 
 ### Step 1: Generate Certificates
 
-**Local development** uses self-signed certs via mkcert. **GCP deployment** uses real certs issued for `cop.demo.missionedgetechnologies.com` — place the `.pem` and `.key.pem` files in `dsp-keys/` and skip this step.
-
-**Option A: Script (local dev)**
+For **self-signed certs** (local dev or testing), run the key generation script with your domain:
 
 ```bash
+# Defaults to local-dsp.virtru.com if no argument given
 ./scripts/ops/ubuntu_cop_keys.sh
+
+# Custom domain
+./scripts/ops/ubuntu_cop_keys.sh your-domain.com
 ```
 
-**Option B: Make Command**
-
-```bash
-# Local (default)
-make dev-certs
-
-# GCP or custom domain
-make dev-certs PLATFORM_HOSTNAME=cop.demo.missionedgetechnologies.com
-```
+For **real certs** (e.g. production/GCP), skip this step and place your cert files in `dsp-keys/` named as:
+- `dsp-keys/<your-domain>.pem`
+- `dsp-keys/<your-domain>.key.pem`
+- `dsp-keys/rootCA.pem`
 
 ### Step 2: Unpack the Bundle
 
@@ -103,52 +100,56 @@ curl -X GET http://localhost:5000/v2/_catalog
 curl -X GET http://localhost:5000/v2/virtru/data-security-platform/tags/list
 ```
 
-### Step 4: Build and Run
+### Step 4: Configure Your Domain
 
-Use Docker Compose to build and start the environment.
+There are only **2 files** to configure. All other URLs (KAS, IDP, Keycloak, TLS cert paths, S4 provider) are derived automatically.
 
-**Set up your environment file:**
-
-The env files are not committed to the repo. Copy the example file for your target environment and fill in any values specific to your deployment. The key variable is `PLATFORM_HOSTNAME` — all other URLs are derived from it.
+**`env/default.env`** — set `PLATFORM_HOSTNAME` to your domain:
 
 ```bash
-# For local development
-cp env/local.env.example env/local.env
-
-# For GCP deployment
 cp env/default.env.example env/default.env
 ```
 
-To deploy on a new machine/domain, just change `PLATFORM_HOSTNAME` in your env file — no other URL changes needed.
-
-**Start the environment:**
-
-```bash
-# Local development
-docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 down && \
-docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
-
-# GCP deployment
-docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 down && \
-docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
+Then edit `PLATFORM_HOSTNAME`:
+```
+PLATFORM_HOSTNAME=your-domain.com
 ```
 
-**Application URLs:**
-- `https://<PLATFORM_HOSTNAME>:5001/` (e.g. `https://local-dsp.virtru.com:5001/` for local, `https://cop.demo.missionedgetechnologies.com:5001/` for GCP)
-
-**Stop the environment:**
+**`config.yaml`** — set `platform_endpoint` to match:
 
 ```bash
-# Local development
-docker compose --env-file env/local.env -f docker-compose.dev.yaml --profile nifi --profile s4 down
+cp config.yaml.example config.yaml
+```
 
-# GCP deployment
+Then edit `platform_endpoint`:
+```yaml
+platform_endpoint: https://your-domain.com:8080
+```
+
+### Step 5: Build and Run
+
+```bash
+# Build (first time or after code changes)
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
+
+# Start (without rebuilding)
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d
+
+# Restart with rebuild
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 down && \
+docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 up -d --build
+
+# Stop
 docker compose --env-file env/default.env -f docker-compose.dev.yaml --profile nifi --profile s4 down
 ```
 
-### Step 5. Seeding Vehicle Data and Live Data Flow Simulation
+**Application URLs:**
+- **UI:** `https://<your-domain>:5001/`
+- **Keycloak Admin:** `https://<your-domain>:8443/auth/admin/`
 
-Following the successful building of COP:
+### Step 6: Seeding Vehicle Data and Live Data Flow Simulation
+
+You can seed data from the UI by clicking **Start Simulation**, or manually:
 
 ```bash
 # Install the venv module
@@ -160,40 +161,29 @@ python3 -m venv COP_venv
 
 ```bash
 # Activate the virtual environment.
-# Your shell prompt will change to indicate it's active.
 source COP_venv/bin/activate
 ```
 
 ```bash
-# Pip install all required package from requirements.txt
+# Install required packages
 pip install -r requirements.txt
 ```
 
 ```bash
 # Run seeding script to populate database
-# 50 is the standard number of objects that the script will inset but is configurable via NUM_RECORDS variable
-
-# Local (defaults connect to cop-db:5432 and https://s4:7070 via Docker network)
 python3 scripts/seed/seed_data.py
-
-# GCP — override endpoints to reach services from the host machine
-DB_HOST=localhost DB_PORT=<mapped-port> \
-  S4_ENDPOINT=https://cop.demo.missionedgetechnologies.com:7070 \
-  python3 scripts/seed/seed_data.py
 ```
 
 ```bash
 # Start simulation
 # NUM_ENTITIES will determine how many moving entities the script will query the database for and apply movement logic to
-# UPDATE_INTERVAL_SECONDS determins the frequency of movement for each object
-# BOUNDING_BOX_PARAMS define the area for the OpenSky query for live planes (smaller box results in less credits used on init).
+# UPDATE_INTERVAL_SECONDS determines the frequency of movement for each object
 
 # For live data from OpenSky Network login to https://opensky-network.org/, download credentials file (credentials.json),
-# place the file in the base director (where the sim_data.py script is located) and then run:
+# place the file in the base directory and then run:
 python3 scripts/seed/sim_data.py
 
-# For a fake simulation that does not require the credentials file or use account credits with OpenSky run this script
-# for simulated movement:
+# For a fake simulation that does not require the credentials file or use account credits with OpenSky:
 python3 scripts/seed/sim_data_fake_opensky.py
 ```
 
@@ -201,9 +191,10 @@ python3 scripts/seed/sim_data_fake_opensky.py
 
 If you encounter issues, double-check the following:
 
-- **Config files:** Ensure `config.yaml` (GCP) or `config.local.yaml` (local) exists in the project root. Only `platform_endpoint` needs the hostname — all other URLs (KAS, IDP, TLS certs, public hosts) are derived automatically.
-- **Env files:** Ensure `env/default.env` (GCP) or `env/local.env` (local) exists — these are gitignored, copy from the `.example` files. Only `PLATFORM_HOSTNAME` needs to be set — other URLs are derived.
+- **Config:** Ensure `config.yaml` exists with the correct `platform_endpoint`. All other URLs are derived automatically.
+- **Env file:** Ensure `env/default.env` exists with the correct `PLATFORM_HOSTNAME`. Copy from `env/default.env.example` if missing.
 - **S4 config:** The S4 proxy config is generated automatically at container startup from `PLATFORM_HOSTNAME` — no separate S4 config files needed.
-- **rootCA.pem:** Ensure `dsp-keys/rootCA.pem` was generated correctly during the cert setup step.
-- **Permissions:** Verify that the certificates in `dsp-keys` have `chmod 755` permissions.
-- **GCP Firewall:** Ensure ports 5001, 5002, 7070, 8080, and 8443 are open in the GCP firewall rules for your VM.
+- **Certs:** Ensure `dsp-keys/<your-domain>.pem`, `dsp-keys/<your-domain>.key.pem`, and `dsp-keys/rootCA.pem` exist.
+- **Permissions:** Verify that the certificates in `dsp-keys` have `chmod 644` permissions.
+- **Firewall:** Ensure ports 5001, 5002, 7070, 8080, and 8443 are open for your VM.
+- **DNS:** Ensure your domain resolves to the VM's IP (via DNS A record or `/etc/hosts`).
