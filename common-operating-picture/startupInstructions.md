@@ -99,6 +99,15 @@ docker run -d --restart=always -p 5000:5000 --name registry registry:2
 # (Run this from the virtru-dsp-bundle root directory)
 ./dsp copy-images --insecure localhost:5000/virtru
 
+# 3. copy trino image
+cp <Trino plugin tar location>/tdf-trino-0.4.0.tar .
+#TEMPORARY - to run arm64 image
+docker run --privileged --rm tonistiigi/binfmt --install all
+
+docker load --input tdf-trino-0.4.0.tar
+docker tag us-docker.pkg.dev/prj-infra-automation-ktbz/internal/tdf-trino:latest localhost:5000/virtru/tdf-trino:latest
+docker push localhost:5000/tdf-trino:latest
+
 # 3. Verify images were copied successfully
 curl -X GET http://localhost:5000/v2/_catalog
 curl -X GET http://localhost:5000/v2/virtru/data-security-platform/tags/list
