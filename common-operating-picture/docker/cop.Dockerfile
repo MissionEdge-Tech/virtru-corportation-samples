@@ -3,6 +3,7 @@
 
 # --- STAGE 1: Frontend Build ---
 FROM node:22-alpine AS ui-builder
+ARG VITE_S4_ENDPOINT
 ARG VITE_TILE_SERVER_URL
 ARG VITE_GRPC_SERVER_URL
 ARG VITE_DSP_BASE_URL
@@ -11,6 +12,7 @@ ARG VITE_DSP_KC_SERVER_URL
 ARG VITE_DSP_KC_CLIENT_ID
 ARG VITE_DSP_KC_DIRECT_AUTH
 
+ENV VITE_S4_ENDPOINT=$VITE_S4_ENDPOINT
 ENV VITE_TILE_SERVER_URL=$VITE_TILE_SERVER_URL
 ENV VITE_GRPC_SERVER_URL=$VITE_GRPC_SERVER_URL
 ENV VITE_DSP_BASE_URL=$VITE_DSP_BASE_URL
@@ -24,7 +26,7 @@ COPY ui/package.json ui/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --cache /root/.npm
 COPY ui/ .
-COPY config/samples/sample.federal_policy.yaml /sample.federal_policy.yaml
+COPY config/samples/sample.federal_policy.yaml /config/samples/sample.federal_policy.yaml
 RUN npm run build
 
 # --- STAGE 2: GEOS Libs Build ---

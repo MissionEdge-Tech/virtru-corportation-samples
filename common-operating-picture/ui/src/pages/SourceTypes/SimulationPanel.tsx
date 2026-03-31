@@ -1,5 +1,6 @@
-import { Box, Button, Typography } from '@mui/material';
-import { PlayArrow, Stop } from '@mui/icons-material';
+import { useState } from 'react';
+import { Box, Button, Collapse, IconButton, Typography } from '@mui/material';
+import { PlayArrow, Stop, ExpandMore, ExpandLess } from '@mui/icons-material';
 
 interface SimulationPanelProps {
   isStarting: boolean;
@@ -24,6 +25,7 @@ export function SimulationPanel({
 }: SimulationPanelProps) {
   
   const isDisabled = isStarting || isStopping || isChecking;
+  const [consoleOpen, setConsoleOpen] = useState(false);
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -57,26 +59,36 @@ export function SimulationPanel({
         )}
       </Box>
 
-      <Box 
-        sx={{ 
-          p: 1, 
-          height: '150px', 
-          overflowY: 'auto', 
-          backgroundColor: '#fafafa',
-          border: '1px solid #ddd',
-          borderRadius: 1,
-          fontFamily: 'monospace',
-          fontSize: '0.75rem'
-        }}
-      >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-          <Typography variant="caption" color="textSecondary">Logs</Typography>
-          <Button size="small" onClick={onClearLogs} sx={{ fontSize: '0.6rem' }}>Clear</Button>
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Box display="flex" alignItems="center">
+          <IconButton size="small" onClick={() => setConsoleOpen(!consoleOpen)}>
+            {consoleOpen ? <ExpandLess /> : <ExpandMore />}
+          </IconButton>
+          <Typography variant="caption" color="textSecondary">Console</Typography>
         </Box>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-          {logs || 'No logs to display.'}
-        </pre>
+        {consoleOpen && (
+          <Button size="small" onClick={onClearLogs} sx={{ fontSize: '0.6rem' }}>Clear</Button>
+        )}
       </Box>
+
+      <Collapse in={consoleOpen}>
+        <Box
+          sx={{
+            p: 1,
+            height: '150px',
+            overflowY: 'auto',
+            backgroundColor: '#121212',
+            border: '1px solid #333',
+            borderRadius: 1,
+            fontFamily: 'monospace',
+            fontSize: '0.75rem',
+          }}
+        >
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: '#4caf50' }}>
+            {logs || 'No logs to display.'}
+          </pre>
+        </Box>
+      </Collapse>
     </Box>
   );
 }

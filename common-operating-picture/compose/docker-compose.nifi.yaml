@@ -59,7 +59,7 @@ services:
     ports:
       - 18080:8080/tcp
     extra_hosts:
-      - "local-dsp.virtru.com:172.17.0.1" #host and ip
+      - "${PLATFORM_HOSTNAME}:host-gateway"
 
 #================================================================
 # NiFi Bootstrap — runs once to load template and start the flow
@@ -73,6 +73,8 @@ services:
     environment:
       - NIFI_URL=http://nifi:8080
       - TEMPLATE_FILE=/flows/working_flow.xml
+      - PLATFORM_HOSTNAME=${PLATFORM_HOSTNAME}
+      - FLOW_HOSTNAME_PLACEHOLDER=${PLATFORM_HOSTNAME}
       - TDF_FLOW_CLIENT_SECRET=${NIFI_CLIENT_SECRET}
       - TDFDB_DATABASE_PASSWORD=${DB_PASSWORD}
       - NIFI_TRUSTSTORE_PASSWORD=${NIFI_TRUSTSTORE_PASSWORD:-password}

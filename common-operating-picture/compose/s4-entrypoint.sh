@@ -1,3 +1,6 @@
+#!/bin/sh
+PROVIDER_NAME=$(echo "$PLATFORM_HOSTNAME" | cut -d'.' -f1)
+cat > /tmp/config.yaml <<EOF
 logging:
   level: debug
 
@@ -10,15 +13,16 @@ auth:
 server:
   port: 7070
   tls:
-    certFile: /app/certs/cop.demo.missionedgetechnologies.com.pem
-    keyFile: /app/certs/cop.demo.missionedgetechnologies.com.key.pem
+    certFile: /app/certs/${PLATFORM_HOSTNAME}.pem
+    keyFile: /app/certs/${PLATFORM_HOSTNAME}.key.pem
+
 backend:
-  platformUrl: https://cop.demo.missionedgetechnologies.com:8080/
-  oidcUrl: https://cop.demo.missionedgetechnologies.com:8443/auth/realms/opentdf/protocol/openid-connect/token
+  platformUrl: https://${PLATFORM_HOSTNAME}:${PLATFORM_HTTP_PORT:-8080}/
+  oidcUrl: https://${PLATFORM_HOSTNAME}:${PLATFORM_HTTPS_PORT:-8443}/auth/realms/opentdf/protocol/openid-connect/token
   defaultAttrs: []
   insecure: true
   provider:
-    cop:
+    ${PROVIDER_NAME}:
       type: s3
       vendorType: minio
       endpoint: http://minio:9000
@@ -56,3 +60,6 @@ backend:
   metadataCache:
     expirationMins: 0
     maxElements: 1048576
+EOF
+
+exec s4proxy start -f /tmp/config.yaml
