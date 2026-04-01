@@ -13,7 +13,7 @@ from faker import Faker
 from datetime import datetime, timedelta
 from psycopg2.extras import execute_batch
 from otdf_python.sdk_builder import SDKBuilder
-from otdf_python.config import NanoTDFConfig, KASInfo
+from otdf_python.config import TDFConfig, KASInfo
 from botocore.config import Config
 
 # --- Load env file if ENV_FILE is set or auto-detect ---
@@ -220,19 +220,18 @@ def encrypt_data(sdk, plaintext: str, attributes: list[str]) -> bytes:
     target_kas_url = os.getenv("KAS_TDF_URL", f"https://{_hostname}:{_http_port}/kas")
     kas_info = KASInfo(url=target_kas_url)
 
-    config = NanoTDFConfig(
+    config = TDFConfig(
         attributes=attributes,
-        ecc_mode="secp256r1",
         kas_info_list=[kas_info]
     )
 
     input_data_stream = BytesIO(plaintext.encode('utf-8'))
     output_stream = BytesIO()
 
-    sdk.create_nano_tdf(
+    sdk.create_tdf(
         input_data_stream,
-        output_stream,
-        config
+        config,
+        output_stream
     )
 
     return output_stream.getvalue()
