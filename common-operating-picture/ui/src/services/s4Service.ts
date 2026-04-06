@@ -131,6 +131,17 @@ export interface MilitaryManifest {
   processing: Processing;
 }
 
+export interface ManifestS4Tags {
+  classification: string[];
+  relTo: string[];
+  ntk: string[];
+}
+
+export interface ManifestFetchResult {
+  manifest: MilitaryManifest;
+  s4Tags: ManifestS4Tags;
+}
+
 /**
  * Exchange JWT for temporary S3 credentials via S4 STS
  */
@@ -187,7 +198,7 @@ export function parseS3Uri(s3Uri: string): { bucket: string; key: string } | nul
 export async function fetchManifestFromS4(
   accessToken: string,
   manifestUri: string
-): Promise<MilitaryManifest> {
+): Promise<ManifestFetchResult> {
   const parsed = parseS3Uri(manifestUri);
   if (!parsed) {
     throw new Error(`Invalid S3 URI: ${manifestUri}`);
@@ -242,7 +253,23 @@ export async function fetchManifestFromS4(
     }
 
     const manifest: MilitaryManifest = JSON.parse(bodyText);
-    return manifest;
+
+    const attrValues = Object.entries(response.Metadata || {})
+      .filter(([k]) => k.startsWith('tdf-data-attribute-'))
+      .sort(([a], [b]) => {
+        const ai = parseInt(a.replace('tdf-data-attribute-', ''));
+        const bi = parseInt(b.replace('tdf-data-attribute-', ''));
+        return ai - bi;
+      })
+      .map(([, v]) => v);
+
+    const s4Tags: ManifestS4Tags = {
+      classification: attrValues.filter(v => v.includes('/attr/classification/')),
+      relTo: attrValues.filter(v => v.includes('/attr/relto/')),
+      ntk: attrValues.filter(v => v.includes('/attr/needtoknow/')),
+    };
+
+    return { manifest, s4Tags };
   } catch (err: any) {
     if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
       throw new Error('ENTITLEMENT_DENIED');

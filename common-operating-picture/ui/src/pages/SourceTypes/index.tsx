@@ -191,6 +191,7 @@ export function SourceTypes() {
         {srcType && <CreateDialog open={dialogOpen} onClose={handleDialogClose} />}
         {poppedOutVehicle && (
           <VehicleDetailSidebar
+            key={poppedOutVehicle.tdfObject.id}
             vehicle={poppedOutVehicle}
             vehicleSrcType={vehicleSrcType}
             categorizedData={categorizedData || {}}
