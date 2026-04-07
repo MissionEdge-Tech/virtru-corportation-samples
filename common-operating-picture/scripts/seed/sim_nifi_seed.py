@@ -49,13 +49,8 @@ REPO_ROOT         = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 SAMPLE_FILES_DIR  = os.path.join(REPO_ROOT, "nifi", "sample_data", "sample_files")
 MISSION_EXAMPLE_DIR = os.path.join(REPO_ROOT, "nifi", "sample_data", "mission_example")
 
-# Seed files that NiFi will ingest
-SEED_FILES = [
-    "vehicle-sample.json",
-    "employee-sample.json",
-    "facility-sample.json",
-    "sitrep-sample.json",
-]
+# Discover seed files (all .json files in sample_files directory)
+SEED_FILES = [f for f in os.listdir(SAMPLE_FILES_DIR) if f.endswith(".json")]
 
 # Polling config
 POLL_INTERVAL_SECONDS = 3
@@ -83,6 +78,10 @@ def clear_existing_records():
 
 def copy_seed_files():
     os.makedirs(MISSION_EXAMPLE_DIR, exist_ok=True)
+    try:
+        os.chmod(MISSION_EXAMPLE_DIR, 0o777)
+    except OSError:
+        pass  # container may lack permission; rely on host/volume mount perms
     for fname in SEED_FILES:
         src = os.path.join(SAMPLE_FILES_DIR, fname)
         dst = os.path.join(MISSION_EXAMPLE_DIR, fname)
