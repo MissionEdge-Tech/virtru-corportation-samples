@@ -271,6 +271,51 @@ realms:
             - MEX
           clearance:
             - U
+      - username: partnera.regionalanalyst
+        enabled: true
+        firstName: PartnerA
+        lastName: RegionalAnalyst
+        email: partnera.regionalanalyst@studemo.com
+        realmRoles:
+          - opentdf-standard
+        credentials:
+          - value: testuser123
+            type: password
+        attributes:
+          nationality:
+            - PartnerA
+          clearance:
+            - TS
+      - username: partnerb.opsviewer
+        enabled: true
+        firstName: PartnerB
+        lastName: OpsViewer
+        email: partnerb.opsviewer@studemo.com
+        realmRoles:
+          - opentdf-standard
+        credentials:
+          - value: testuser123
+            type: password
+        attributes:
+          nationality:
+            - PartnerB
+          clearance:
+            - S
+      - username: leadnation.analyst
+        enabled: true
+        firstName: LeadNation
+        lastName: Analyst
+        email: leadnation.analyst@studemo.com
+        realmRoles:
+          - opentdf-standard
+        credentials:
+          - value: testuser123
+            type: password
+        attributes:
+          nationality:
+            - leadnation
+          clearance:
+            - S
     token_exchanges:
       - start_client: opentdf
         target_client: opentdf-sdk

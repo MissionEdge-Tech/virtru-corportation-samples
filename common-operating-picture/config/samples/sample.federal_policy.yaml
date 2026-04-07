@@ -29,6 +29,9 @@ attributes:
           - value: fvey
           - value: nato
           - value: pink
+          - value: PartnerA
+          - value: PartnerB
+          - value: leadnation
           # ungrouped nationalities
           - value: AFG
           - value: ALB
@@ -347,6 +350,24 @@ subject_mappings:
   sm_nationality_group_FVEY:
     attribute_value: demo.com/attr/relto/value/fvey
     subject_condition_set_name: scs_nationality_group_FVEY
+    actions:
+      - DECRYPT
+      - READ
+  sm_nationality_group_PartnerA:
+    attribute_value: demo.com/attr/relto/value/PartnerA
+    subject_condition_set_name: scs_nationality_group_PartnerA
+    actions:
+      - DECRYPT
+      - READ
+  sm_nationality_group_PartnerB:
+    attribute_value: demo.com/attr/relto/value/PartnerB
+    subject_condition_set_name: scs_nationality_group_PartnerB
+    actions:
+      - DECRYPT
+      - READ
+  sm_nationality_group_leadnation:
+    attribute_value: demo.com/attr/relto/value/leadnation
+    subject_condition_set_name: scs_nationality_group_leadnation
     actions:
       - DECRYPT
       - READ
@@ -1047,6 +1068,42 @@ subject_condition_sets:
                   - AUS
                   - CAN
                   - NZL
+  scs_nationality_group_PartnerA:
+    subject_sets:
+      - condition_groups:
+          - boolean_operator: CONDITION_BOOLEAN_TYPE_ENUM_OR
+            conditions:
+              - subject_external_selector_value: '.clientId'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values: *approved_clients
+              - subject_external_selector_value: '.attributes.nationality[]'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values:
+                  - PartnerA
+  scs_nationality_group_PartnerB:
+    subject_sets:
+      - condition_groups:
+          - boolean_operator: CONDITION_BOOLEAN_TYPE_ENUM_OR
+            conditions:
+              - subject_external_selector_value: '.clientId'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values: *approved_clients
+              - subject_external_selector_value: '.attributes.nationality[]'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values:
+                  - PartnerB
+  scs_nationality_group_leadnation:
+    subject_sets:
+      - condition_groups:
+          - boolean_operator: CONDITION_BOOLEAN_TYPE_ENUM_OR
+            conditions:
+              - subject_external_selector_value: '.clientId'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values: *approved_clients
+              - subject_external_selector_value: '.attributes.nationality[]'
+                operator: SUBJECT_MAPPING_OPERATOR_ENUM_IN
+                subject_external_values:
+                  - leadnation
   # Individual nationalities handled via template
 
 subject_mapping_templates:

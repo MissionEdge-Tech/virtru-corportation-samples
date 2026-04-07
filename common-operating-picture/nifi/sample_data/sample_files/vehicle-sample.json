@@ -17,14 +17,14 @@
                 "heading": "090",
                 "Coord": "389531000N07745650000W",
                 "ProducerDateTimeLastChg": "2026-03-19T23:03:52Z",
-                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"],
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"],
                 "attrRelTo": [],
                 "attrNeedToKnow": []
             },
             "Search": {
                 "attrRelTo": [],
                 "attrNeedToKnow": [],
-                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"]
+                "attrClassification": ["https://demo.com/attr/classification/value/topsecret"]
             },
             "Metadata": {
                 "callsign": "VPR01",
@@ -271,6 +271,108 @@
                 "heading": "000"
             },
             "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-008</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-19T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"TS\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA GBR CAN\" ism:disseminationControls=\"NF\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-19\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"SIGINT Tasking\" ism:declassDate=\"2031-03-19\"/>\n</edh:ExternalEdh>"
+        },
+        {
+            "Type": "vehicles",
+            "tdfFormat": "ztdf",
+            "Details": {
+                "vehicleName": "F-16C Fighting Falcon",
+                "callsign": "VIPER09",
+                "registration": "USAF-1134",
+                "tailNumber": "92-3884",
+                "aircraft_type": "F-16C (FIGHTER)",
+                "operator": "USAF 31 FW",
+                "origin": "AVIANO AB",
+                "destination": "AO-ZULU-04",
+                "speed": "520 kts",
+                "altitude": "FL280",
+                "heading": "270",
+                "Coord": "412800000N01230000000E",
+                "ProducerDateTimeLastChg": "2026-03-19T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"],
+                "attrRelTo": ["https://demo.com/attr/relto/value/leadnation"],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": ["https://demo.com/attr/relto/value/leadnation"],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"]
+            },
+            "Metadata": {
+                "callsign": "VIPER09",
+                "speed": "520 kts",
+                "altitude": "FL280",
+                "heading": "270"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-009</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-19T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"TS\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA GBR CAN\" ism:disseminationControls=\"NF\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-19\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"SIGINT Tasking\" ism:declassDate=\"2031-03-19\"/>\n</edh:ExternalEdh>"
+        },
+        {
+            "Type": "vehicles",
+            "tdfFormat": "ztdf",
+            "Details": {
+                "vehicleName": "F/A-18F Super Hornet",
+                "callsign": "HORNET3",
+                "registration": "USN-4421",
+                "tailNumber": "166970",
+                "aircraft_type": "F/A-18F (MULTIROLE)",
+                "operator": "USN VFA-213",
+                "origin": "USS FORD CVN-78",
+                "destination": "AO-DELTA-02",
+                "speed": "510 kts",
+                "altitude": "FL240",
+                "heading": "090",
+                "Coord": "355000000N03600000000E",
+                "ProducerDateTimeLastChg": "2026-03-19T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"],
+                "attrRelTo": ["https://demo.com/attr/relto/value/partnera"],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": ["https://demo.com/attr/relto/value/partnera"],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"]
+            },
+            "Metadata": {
+                "callsign": "HORNET3",
+                "speed": "510 kts",
+                "altitude": "FL240",
+                "heading": "090"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-010</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-19T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"TS\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA GBR CAN\" ism:disseminationControls=\"NF\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-19\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"SIGINT Tasking\" ism:declassDate=\"2031-03-19\"/>\n</edh:ExternalEdh>"
+        },
+        {
+            "Type": "vehicles",
+            "tdfFormat": "ztdf",
+            "Details": {
+                "vehicleName": "Eurofighter Typhoon",
+                "callsign": "TYPHON5",
+                "registration": "RAF-1442",
+                "tailNumber": "ZK317",
+                "aircraft_type": "TYPHOON (MULTIROLE)",
+                "operator": "RAF 29 SQN",
+                "origin": "RAF CONINGSBY",
+                "destination": "AO-ECHO-07",
+                "speed": "530 kts",
+                "altitude": "FL320",
+                "heading": "180",
+                "Coord": "530000000N01500000000E",
+                "ProducerDateTimeLastChg": "2026-03-19T23:03:52Z",
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"],
+                "attrRelTo": ["https://demo.com/attr/relto/value/partnerb"],
+                "attrNeedToKnow": []
+            },
+            "Search": {
+                "attrRelTo": ["https://demo.com/attr/relto/value/partnerb"],
+                "attrNeedToKnow": [],
+                "attrClassification": ["https://demo.com/attr/classification/value/unclassified"]
+            },
+            "Metadata": {
+                "callsign": "TYPHON5",
+                "speed": "530 kts",
+                "altitude": "FL320",
+                "heading": "180"
+            },
+            "EDH": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<edh:ExternalEdh xmlns:edh=\"urn:us:gov:ic:edh\" xmlns:arh=\"urn:us:gov:ic:arh\" xmlns:ism=\"urn:us:gov:ic:ism\" xmlns:icid=\"urn:us:gov:ic:id\" ism:DESVersion=\"201609.201707\" ism:ISMCATCESVersion=\"201709\">\n   <icid:Identifier>guide://unique-entity-id-vehicle-011</icid:Identifier>\n   <edh:DataItemCreateDateTime>2026-03-19T23:03:52Z</edh:DataItemCreateDateTime>\n   <edh:ResponsibleEntity edh:role=\"Custodian\">\n      <edh:Country>USA</edh:Country>\n      <edh:Organization>USAF</edh:Organization>\n   </edh:ResponsibleEntity>\n   <arh:Security ism:classification=\"TS\" ism:ownerProducer=\"USA\" ism:releasableTo=\"USA GBR CAN\" ism:disseminationControls=\"NF\" ism:resourceElement=\"true\" ism:compliesWith=\"USGov USIC\" ism:createDate=\"2026-03-19\" ism:derivativelyClassifiedBy=\"System\" ism:derivedFrom=\"SIGINT Tasking\" ism:declassDate=\"2031-03-19\"/>\n</edh:ExternalEdh>"
         }
     ]
 }
