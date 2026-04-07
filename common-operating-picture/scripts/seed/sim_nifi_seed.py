@@ -51,7 +51,7 @@ MISSION_EXAMPLE_DIR = os.path.join(REPO_ROOT, "nifi", "sample_data", "mission_ex
 
 # Seed files that NiFi will ingest
 SEED_FILES = [
-    "vehicles-seed.json",
+    "vehicle-sample.json",
     "employee-sample.json",
     "facility-sample.json",
     "sitrep-sample.json",
@@ -69,16 +69,16 @@ def get_conn():
     )
 
 
-def clear_existing_vehicles():
+def clear_existing_records():
     print(f"[db] connecting to {DB_HOST}:{DB_PORT}/{DB_NAME}...")
     conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE src_type = 'vehicles'")
+    cursor.execute(f"DELETE FROM {TABLE_NAME}")
     deleted = cursor.rowcount
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"[db] deleted {deleted} existing vehicle record(s)")
+    print(f"[db] deleted {deleted} existing record(s)")
 
 
 def copy_seed_files():
@@ -120,7 +120,7 @@ def wait_for_ingestion():
 
 if __name__ == "__main__":
     try:
-        clear_existing_vehicles()
+        clear_existing_records()
         copy_seed_files()
         count = wait_for_ingestion()
         print(f"[done] NiFi seed complete: {count} vehicle(s) ready")
