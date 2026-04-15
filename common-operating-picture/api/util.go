@@ -46,7 +46,7 @@ func prepNoteForResponse(in db.TdfNote) *tdf_notev1.TdfNote {
 	}
 }
 
-func queryTdfObjectSwitch(ctx context.Context, q *db.Queries, p *tdf_objectv1.QueryTdfObjectsRequest) ([]*tdf_objectv1.TdfObject, error) {
+func queryTdfObjectSwitch(ctx context.Context, q db.DataStore, p *tdf_objectv1.QueryTdfObjectsRequest) ([]*tdf_objectv1.TdfObject, error) {
 	srcType := p.GetSrcType()
 	startTime := pgtype.Timestamp{Time: p.GetTsRange().GreaterOrEqualTo.AsTime(), Valid: true}
 	endTime := pgtype.Timestamp{Time: time.Now().UTC(), Valid: true}
@@ -97,7 +97,7 @@ func queryTdfObjectSwitch(ctx context.Context, q *db.Queries, p *tdf_objectv1.Qu
 	}
 }
 
-func dbQuerySearchAndGeo(ctx context.Context, query *db.Queries, params db.ListTdfObjectsWithSearchAndGeoParams) ([]*tdf_objectv1.TdfObject, error) {
+func dbQuerySearchAndGeo(ctx context.Context, query db.DataStore, params db.ListTdfObjectsWithSearchAndGeoParams) ([]*tdf_objectv1.TdfObject, error) {
 	items, err := query.ListTdfObjectsWithSearchAndGeo(ctx, params)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func dbQuerySearchAndGeo(ctx context.Context, query *db.Queries, params db.ListT
 	return objs, nil
 }
 
-func dbQuerySearch(ctx context.Context, query *db.Queries, params db.ListTdfObjectsWithSearchParams) ([]*tdf_objectv1.TdfObject, error) {
+func dbQuerySearch(ctx context.Context, query db.DataStore, params db.ListTdfObjectsWithSearchParams) ([]*tdf_objectv1.TdfObject, error) {
 	items, err := query.ListTdfObjectsWithSearch(ctx, params)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func dbQuerySearch(ctx context.Context, query *db.Queries, params db.ListTdfObje
 	return objs, nil
 }
 
-func dbQueryGeo(ctx context.Context, query *db.Queries, params db.ListTdfObjectsWithGeoParams) ([]*tdf_objectv1.TdfObject, error) {
+func dbQueryGeo(ctx context.Context, query db.DataStore, params db.ListTdfObjectsWithGeoParams) ([]*tdf_objectv1.TdfObject, error) {
 	items, err := query.ListTdfObjectsWithGeo(ctx, params)
 	if err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func dbQueryGeo(ctx context.Context, query *db.Queries, params db.ListTdfObjects
 	return objs, nil
 }
 
-func dbQuery(ctx context.Context, query *db.Queries, params db.ListTdfObjectsParams) ([]*tdf_objectv1.TdfObject, error) {
+func dbQuery(ctx context.Context, query db.DataStore, params db.ListTdfObjectsParams) ([]*tdf_objectv1.TdfObject, error) {
 	items, err := query.ListTdfObjects(ctx, params)
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ type dbSrcTypeUiSchemaFieldConfig struct {
 	Multiple    bool   `json:"multiple,omitempty"`
 }
 
-func dbQuerySrcType(ctx context.Context, query *db.Queries, srcTypeId string) (*tdf_objectv1.SrcType, error) {
+func dbQuerySrcType(ctx context.Context, query db.DataStore, srcTypeId string) (*tdf_objectv1.SrcType, error) {
 	srcType, err := query.GetSrcType(ctx, srcTypeId)
 	if err != nil {
 		return nil, err

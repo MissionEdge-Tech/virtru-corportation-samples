@@ -27,14 +27,55 @@ const validatorErrMsg = `
 
 `
 
+// DataSourcePlugin selects which database backend to use.
+type DataSourcePlugin string
+
+const (
+	// DataSourcePluginPostgres connects directly to PostgreSQL (default).
+	DataSourcePluginPostgres DataSourcePlugin = "postgres"
+	// DataSourcePluginTrino connects via the TDF-Trino query engine.
+	DataSourcePluginTrino DataSourcePlugin = "trino"
+)
+
+// TrinoConfig holds connection settings for the Trino data source plugin.
+type TrinoConfig struct {
+	// URL is the Trino server base URL
+	URL string `mapstructure:"url"`
+	// Catalog is the Trino catalog to query
+	Catalog string `mapstructure:"catalog" default:"tdf_postgresql"`
+	// Schema is the Trino schema to use
+	Schema string `mapstructure:"schema" default:"public"`
+	// User is the Trino user for authentication
+	User string `mapstructure:"user" default:"admin"`
+	// SSLCertPath is the path to a PEM CA certificate to trust for HTTPS connections.
+	// Required when using https:// and the server uses a self-signed or private CA cert.
+	SSLCertPath string `mapstructure:"ssl_cert_path"`
+	// InsecureSkipVerify skips TLS certificate verification.
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify"`
+}
+
+// DataSourceConfig selects which database plugin to use and holds its settings.
+type DataSourceConfig struct {
+	// Plugin selects the data source backend: "postgres" (default) or "trino"
+	Plugin DataSourcePlugin `mapstructure:"plugin" default:"postgres"`
+	// Trino holds connection settings when Plugin is "trino"
+	Trino TrinoConfig `mapstructure:"trino"`
+}
+
 type Config struct {
 	////////////////////////
 	//// Required
 	////////////////////////
 
-	// DB connection string and pool settings https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+	// DataSource selects the database backend (postgres or trino) and its connection settings.
+	// When plugin is "postgres" (default), db_url is required.
+	// When plugin is "trino", data_source.trino.url is required.
+	DataSource DataSourceConfig `mapstructure:"data_source"`
+
+	// DB connection string and pool settings — required when data_source.plugin is "postgres".
+	// https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 	// Pool settings https://pkg.go.dev/github.com/jackc/pgx/v5@v5.5.5/pgxpool#ParseConfig
-	DBUrl string `mapstructure:"db_url" validate:"required"`
+	DBUrl string `mapstructure:"db_url"`
 
 	// DSP platform endpoint
 	PlatformEndpoint string `mapstructure:"platform_endpoint" validate:"required"`
@@ -130,6 +171,21 @@ func New() (*Config, error) {
 	if err := validate.Struct(c); err != nil {
 		fmt.Print(validatorErrMsg)
 		return nil, fmt.Errorf("fatal error validating config: %w", err)
+	}
+
+	// Validate plugin-specific required fields
+	switch c.DataSource.Plugin {
+	case DataSourcePluginPostgres, "":
+		c.DataSource.Plugin = DataSourcePluginPostgres
+		if c.DBUrl == "" {
+			return nil, fmt.Errorf("db_url is required when data_source.plugin is %q", DataSourcePluginPostgres)
+		}
+	case DataSourcePluginTrino:
+		if c.DataSource.Trino.URL == "" {
+			return nil, fmt.Errorf("data_source.trino.url is required when data_source.plugin is %q", DataSourcePluginTrino)
+		}
+	default:
+		return nil, fmt.Errorf("data_source.plugin must be %q or %q, got %q", DataSourcePluginPostgres, DataSourcePluginTrino, c.DataSource.Plugin)
 	}
 
 	// Set the CORS origin if it's empty

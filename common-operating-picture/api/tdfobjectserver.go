@@ -30,7 +30,7 @@ import (
 type TdfObjectServer struct {
 	ActiveClients *activeclients.ActiveClients
 	Config        *config.Config
-	DBQueries     *db.Queries
+	DBStore       db.DataStore
 	SDK           *sdk.SDK
 
 	cache *ristretto.Cache
@@ -58,42 +58,29 @@ func (s *TdfObjectServer) CreateTdfNote(
 
 	search := []byte(req.Msg.Search)
 	if len(search) == 0 {
-		// todo: figure out how to use with NULL db type
 		search = []byte("{}")
 	}
 
-	// Convert the string to uuid.UUID
 	parentUUID, err := uuid.Parse(req.Msg.ParentId)
 	if err != nil {
 		log.Fatalf("invalid UUID: %v", err)
 	}
-	var newId uuid.UUID
-	var respErr *connect.Error
-	s.DBQueries.CreateNoteObject(ctx, []db.CreateNoteObjectParams{
-		{
-			ParentID: parentUUID,
-			Ts:       ts,
-			Search:   search,
-			TdfBlob:  req.Msg.TdfBlob,
-		},
-	}).QueryRow(func(i int, id uuid.UUID, err error) {
-		if err != nil {
-			slog.ErrorContext(ctx, "Error inserting record", slog.String("error", err.Error()))
-			// TODO: log better exception / err than related parent's id
-			respErr = db.StatusifyError(err, db.ErrCreateFailure, slog.String("tdfNote: ", req.Msg.ParentId))
-		}
-		newId = id
-	})
 
-	if respErr != nil {
-		return nil, respErr
+	newId, err := s.DBStore.InsertNoteObject(ctx, db.CreateNoteObjectParams{
+		ParentID: parentUUID,
+		Ts:       ts,
+		Search:   search,
+		TdfBlob:  req.Msg.TdfBlob,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "Error inserting tdf_note", slog.String("error", err.Error()))
+		return nil, db.StatusifyError(err, db.ErrCreateFailure, slog.String("tdfNote: ", req.Msg.ParentId))
 	}
 
 	res := connect.NewResponse(&tdf_notev1.CreateTdfNoteResponse{
 		Id: newId.String(),
 	})
 	res.Header().Set("TdfNote-Version", "v1")
-
 	return res, nil
 }
 
@@ -155,24 +142,16 @@ func (s *TdfObjectServer) UpdateTdfObject(
 		}
 	}
 
-	// Call update function and passing the update parameters
-	var respErr *connect.Error
-	updatedObject, err := s.DBQueries.UpdateTdfObject(ctx, params)
-
+	updatedObject, err := s.DBStore.UpdateTdfObject(ctx, params)
 	if err != nil {
-		respErr = connect.NewError(connect.CodeInternal, fmt.Errorf("database update failed: %w", err))
-	}
-
-	if respErr != nil {
 		slog.ErrorContext(ctx, "Error updating record", slog.String("id", req.Msg.Id), slog.String("error", err.Error()))
-		return nil, respErr
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database update failed: %w", err))
 	}
 
 	res := connect.NewResponse(&tdf_objectv1.UpdateTdfObjectResponse{
 		Id: updatedObject.ID.String(),
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -222,34 +201,23 @@ func (s *TdfObjectServer) CreateTdfObject(
 		ts = pgtype.Timestamp{Time: time.Now().UTC(), Valid: true}
 	}
 
-	var newId uuid.UUID
-	var respErr *connect.Error
-	s.DBQueries.CreateTdfObjects(ctx, []db.CreateTdfObjectsParams{
-		{
-			SrcType:  strings.ToLower(req.Msg.SrcType),
-			Ts:       ts,
-			Geo:      geo,
-			Search:   search,
-			Metadata: metadata,
-			TdfBlob:  req.Msg.TdfBlob,
-		},
-	}).QueryRow(func(i int, id uuid.UUID, err error) {
-		if err != nil {
-			slog.ErrorContext(ctx, "Error inserting record", slog.String("error", err.Error()))
-			respErr = db.StatusifyError(err, db.ErrCreateFailure, slog.String("src_type", req.Msg.SrcType))
-		}
-		newId = id
+	newId, err := s.DBStore.InsertTdfObject(ctx, db.CreateTdfObjectsParams{
+		SrcType:  strings.ToLower(req.Msg.SrcType),
+		Ts:       ts,
+		Geo:      geo,
+		Search:   search,
+		Metadata: metadata,
+		TdfBlob:  req.Msg.TdfBlob,
 	})
-
-	if respErr != nil {
-		return nil, respErr
+	if err != nil {
+		slog.ErrorContext(ctx, "Error inserting tdf_object", slog.String("error", err.Error()))
+		return nil, db.StatusifyError(err, db.ErrCreateFailure, slog.String("src_type", req.Msg.SrcType))
 	}
 
 	res := connect.NewResponse(&tdf_objectv1.CreateTdfObjectResponse{
 		Id: newId.String(),
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -258,19 +226,19 @@ func (s *TdfObjectServer) GetTdfNote(
 	req *connect.Request[tdf_notev1.GetTdfNoteRequest],
 ) (*connect.Response[tdf_notev1.GetTdfNoteResponse], error) {
 
-	uuid, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	tdfObject, err := s.DBQueries.GetNoteByID(ctx, uuid)
+	tdfObject, err := s.DBStore.GetNoteByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	res := connect.NewResponse(&tdf_notev1.GetTdfNoteResponse{
 		TdfNote: prepNoteForResponse(db.TdfNote{
-			ID:       uuid,
+			ID:       id,
 			Ts:       tdfObject.Ts,
 			ParentID: tdfObject.ParentID,
 			Search:   tdfObject.Search,
@@ -279,7 +247,6 @@ func (s *TdfObjectServer) GetTdfNote(
 		}),
 	})
 	res.Header().Set("TdfNote-Version", "v1")
-
 	return res, nil
 }
 
@@ -288,19 +255,19 @@ func (s *TdfObjectServer) GetTdfObject(
 	req *connect.Request[tdf_objectv1.GetTdfObjectRequest],
 ) (*connect.Response[tdf_objectv1.GetTdfObjectResponse], error) {
 
-	uuid, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	tdfObject, err := s.DBQueries.GetTdfObject(ctx, uuid)
+	tdfObject, err := s.DBStore.GetTdfObject(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	res := connect.NewResponse(&tdf_objectv1.GetTdfObjectResponse{
 		TdfObject: prepObjForResponse(db.TdfObject{
-			ID:      uuid,
+			ID:      id,
 			Ts:      tdfObject.Ts,
 			SrcType: tdfObject.SrcType,
 			Geo:     tdfObject.Geo.(*geos.Geom),
@@ -309,7 +276,6 @@ func (s *TdfObjectServer) GetTdfObject(
 		}),
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -328,7 +294,6 @@ func (s *TdfObjectServer) GetEntitlements(
 		Entitlements: entitlements,
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -347,7 +312,6 @@ func (s *TdfObjectServer) getEntitlements(token string) (dspClient.Entitlements,
 
 	// cache the entitlements
 	s.cache.SetWithTTL(cacheKey, entitlements, EntitlementCacheWeight, EntitlementCacheTTL)
-
 	return entitlements.(dspClient.Entitlements), nil
 }
 
@@ -360,12 +324,16 @@ func (s *TdfObjectServer) QueryTdfNotes(
 	if err != nil {
 		return nil, err
 	}
-	uuid, err := uuid.Parse(req.Msg.GetParentId())
+
+	// Forward token to Trino for row-level TDF security (no-op for postgres).
+	ctx = db.WithTrinoAuthToken(ctx, token)
+
+	id, err := uuid.Parse(req.Msg.GetParentId())
 	if err != nil {
 		return nil, err
 	}
 
-	tdfNotes, err := s.DBQueries.GetNotesFromPar(ctx, uuid)
+	tdfNotes, err := s.DBStore.GetNotesFromPar(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -391,22 +359,12 @@ func (s *TdfObjectServer) QueryTdfNotes(
 			}
 		}
 
-		// Clear the Search field to avoid leaking sensitive data
-		// ignoring for now as only contains classification
-		// t.Search = []byte{}
-
-		// Convert db.GetNotesFromParRow (t) to *tdf_notev1.TdfNote
-		tdfNote := &tdf_notev1.TdfNote{
-			// Populate fields of tdf_notev1.TdfNote from db.GetNotesFromParRow (t)
-			// aka which fields to return up
+		filteredTdfObjects = append(filteredTdfObjects, &tdf_notev1.TdfNote{
 			Id:       t.ID.String(),
 			ParentId: t.ParentID.String(),
 			Search:   string(t.Search),
 			TdfBlob:  t.TdfBlob,
-		}
-
-		// Append the newly created TdfNote to the filtered list
-		filteredTdfObjects = append(filteredTdfObjects, tdfNote)
+		})
 	}
 
 	res := connect.NewResponse(&tdf_notev1.QueryTdfNotesResponse{
@@ -414,7 +372,6 @@ func (s *TdfObjectServer) QueryTdfNotes(
 	})
 	//res.Header().Set("TdfObject-Version", "v1")
 	res.Header().Set("TdfNotes-Version", "v1")
-
 	return res, nil
 }
 
@@ -428,7 +385,10 @@ func (s *TdfObjectServer) QueryTdfObjects(
 		return nil, err
 	}
 
-	tdfObjects, err := queryTdfObjectSwitch(ctx, s.DBQueries, req.Msg)
+	// Forward token to Trino for row-level TDF security (no-op for postgres).
+	ctx = db.WithTrinoAuthToken(ctx, token)
+
+	tdfObjects, err := queryTdfObjectSwitch(ctx, s.DBStore, req.Msg)
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +438,6 @@ func (s *TdfObjectServer) QueryTdfObjects(
 		TdfObjects: filteredTdfObjects,
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -490,10 +449,7 @@ func (s *TdfObjectServer) StreamTdfNotes(
 	// generate a unique ID for the client
 	clientId := uuid.New()
 
-	slog.InfoContext(ctx, "StreamTdfNotes request received",
-		slog.Any("client_id", clientId.String()),
-	)
-
+	slog.InfoContext(ctx, "StreamTdfNotes request received", slog.Any("client_id", clientId.String()))
 	slog.InfoContext(ctx, "client connected to StreamTdfObjects", slog.Any("client_id", clientId.String()))
 	s.ActiveClients.AddNote(clientId.String(), req.Peer(), stream)
 
@@ -537,10 +493,7 @@ func (s *TdfObjectServer) StreamTdfObjects(
 	// generate a unique ID for the client
 	clientId := uuid.New()
 
-	slog.InfoContext(ctx, "StreamTdfObject request received",
-		slog.Any("client_id", clientId.String()),
-	)
-
+	slog.InfoContext(ctx, "StreamTdfObject request received", slog.Any("client_id", clientId.String()))
 	slog.InfoContext(ctx, "client connected to StreamTdfObjects", slog.Any("client_id", clientId.String()))
 	s.ActiveClients.Add(clientId.String(), req.Peer(), stream)
 
@@ -581,7 +534,7 @@ func (s *TdfObjectServer) GetSrcType(
 	req *connect.Request[tdf_objectv1.GetSrcTypeRequest],
 ) (*connect.Response[tdf_objectv1.GetSrcTypeResponse], error) {
 
-	srcType, err := dbQuerySrcType(ctx, s.DBQueries, req.Msg.SrcType)
+	srcType, err := dbQuerySrcType(ctx, s.DBStore, req.Msg.SrcType)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +543,6 @@ func (s *TdfObjectServer) GetSrcType(
 		SrcType: srcType,
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 
@@ -599,7 +551,7 @@ func (s *TdfObjectServer) ListSrcTypes(
 	req *connect.Request[tdf_objectv1.ListSrcTypesRequest],
 ) (*connect.Response[tdf_objectv1.ListSrcTypesResponse], error) {
 
-	srcTypes, err := s.DBQueries.ListSrcTypes(ctx)
+	srcTypes, err := s.DBStore.ListSrcTypes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -608,7 +560,6 @@ func (s *TdfObjectServer) ListSrcTypes(
 		SrcTypes: srcTypes,
 	})
 	res.Header().Set("TdfObject-Version", "v1")
-
 	return res, nil
 }
 

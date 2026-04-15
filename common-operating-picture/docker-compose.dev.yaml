@@ -139,7 +139,16 @@ services:
 #================================================================
 # Start Trino
 #----------------------------------------------------------------
+  binfmt:
+    image: tonistiigi/binfmt
+    privileged: true
+    command: --install all
+    restart: "no"
+
   tdf-trino:
     extends:
       file: ./compose/docker-compose.trino.yaml
       service: tdf-trino
+    depends_on:
+      binfmt:
+        condition: service_completed_successfully

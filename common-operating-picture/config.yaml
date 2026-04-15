@@ -12,13 +12,19 @@
 # The URL of the database to connect to (e.g. postgres://user:password@host:port/database)
 # https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 # Pool settings https://pkg.go.dev/github.com/jackc/pgx/v5@v5.5.5/pgxpool#ParseConfig
-db_url: postgres://postgres:changeme@local-dsp.virtru.com:15432/postgres
+data_source:
+  plugin: trino  # "postgres" | "trino"
+  trino:
+    url: https://local-dsp.virtru.com:28443
+    catalog: tdf_postgresql
+    schema: public
+    user: admin
 ## DSP platform endpoint
 platform_endpoint: https://local-dsp.virtru.com:8080
 
 ## Used to identify the OIDC client for the server which uses the client credentials flow
-oidc_client_id_for_server: dsp-cop
-oidc_client_secret_for_server: 12345678-1234-1234-1234-123456789012
+oidc_client_id_for_server: opentdf
+oidc_client_secret_for_server: secret
 
 ## Used to identify the OIDC client for the Web UI which uses the password flow
 oidc_client_id_for_web_password_flow: dsp-cop-client

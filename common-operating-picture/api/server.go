@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -29,6 +30,8 @@ import (
 	"github.com/virtru-corp/dsp-cop/pkg/ui"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 const pgNotifyChannel = "tdf_objects_inserted"
@@ -57,7 +60,7 @@ type CopServer struct {
 	StaticServer  *http.Server
 	GrpcServer    *http.Server
 	DBConn        *pgxpool.Pool
-	DBQuery       *db.Queries
+	DBStore       db.DataStore
 	ActiveClients *activeclients.ActiveClients
 	SDK           *sdk.SDK
 
@@ -77,23 +80,87 @@ func NewCopServer(c *config.Config, staticFs fs.FS) *CopServer {
 
 	dbCtx := context.Background()
 
-	// Create database connection
-	dbPool, err := db.NewPool(dbCtx, c)
-	if err != nil {
-		slog.ErrorContext(dbCtx, "Error connecting to database", err)
-		panic(err)
-	}
-
 	clients := &activeclients.ActiveClients{}
 
-	// Create pgx listener
-	listener := connectPgxListener(dbPool, clients, pgNotifyChannel)
-	go func() {
-		if err := listener.Listen(dbCtx); err != nil {
-			slog.ErrorContext(dbCtx, "pgx listener error", slog.String("error", err.Error()))
-			slog.Warn("pgx listener will not be available")
+	var dbPool *pgxpool.Pool
+	var dataStore db.DataStore
+
+	switch c.DataSource.Plugin {
+	case config.DataSourcePluginTrino:
+		slog.Info("Data source plugin: trino",
+			slog.String("url", c.DataSource.Trino.URL),
+			slog.String("catalog", c.DataSource.Trino.Catalog),
+			slog.String("schema", c.DataSource.Trino.Schema),
+		)
+		trinoStore, err := db.NewTrinoDataStore(c.DataSource.Trino)
+		if err != nil {
+			slog.Error("failed to connect to Trino", slog.String("error", err.Error()))
+			panic(err)
 		}
-	}()
+		dataStore = trinoStore
+
+		// The TDF connector requires a JWT on every table access — even for
+		// server-initiated queries (e.g. src_type lookups).  Fetch a
+		// service-account token using the configured client credentials and
+		// refresh it in the background before it expires.
+		go func() {
+			tokenURL := c.DeprecatedIdpUrl + "/protocol/openid-connect/token"
+			ccCfg := &clientcredentials.Config{
+				ClientID:     c.OIDCClientIdForServer,
+				ClientSecret: c.OIDCClientSecretForServer,
+				TokenURL:     tokenURL,
+				AuthStyle:    oauth2.AuthStyleInParams,
+			}
+			// Use an HTTP client that skips TLS verification for local dev certs.
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // local dev only
+				},
+			}
+			oidcCtx := context.WithValue(dbCtx, oauth2.HTTPClient, httpClient)
+			for {
+				tok, err := ccCfg.Token(oidcCtx)
+				if err != nil {
+					slog.Error("failed to fetch service-account token for Trino fallback",
+						slog.String("error", err.Error()))
+					time.Sleep(10 * time.Second)
+					continue
+				}
+				trinoStore.SetFallbackToken(tok.AccessToken)
+				slog.Info("Trino fallback token refreshed",
+					slog.Time("expiry", tok.Expiry))
+				// Refresh 30 s before expiry; default to 5 min if no expiry set.
+				ttl := time.Until(tok.Expiry) - 30*time.Second
+				if ttl < 10*time.Second {
+					ttl = 5 * time.Minute
+				}
+				select {
+				case <-dbCtx.Done():
+					return
+				case <-time.After(ttl):
+				}
+			}
+		}()
+
+	default: // DataSourcePluginPostgres
+		slog.Info("Data source plugin: postgres", slog.String("db_url", c.DBUrl))
+		var err error
+		dbPool, err = db.NewPool(dbCtx, c)
+		if err != nil {
+			slog.ErrorContext(dbCtx, "Error connecting to database", err)
+			panic(err)
+		}
+		dataStore = db.NewPgDataStore(db.New(dbPool))
+
+		// Create pgx listener
+		listener := connectPgxListener(dbPool, clients, pgNotifyChannel)
+		go func() {
+			if err := listener.Listen(dbCtx); err != nil {
+				slog.ErrorContext(dbCtx, "pgx listener error", slog.String("error", err.Error()))
+				slog.Warn("pgx listener will not be available")
+			}
+		}()
+	}
 
 	// Create SDK client
 	sdk, err := initSdk(c)
@@ -110,11 +177,10 @@ func NewCopServer(c *config.Config, staticFs fs.FS) *CopServer {
 
 	tdfServer := &TdfObjectServer{
 		Config:        c,
-		DBQueries:     db.New(dbPool),
+		DBStore:       dataStore,
 		ActiveClients: clients,
 		SDK:           sdk,
-		// ristretto cache
-		cache: cache,
+		cache:         cache,
 	}
 
 	// Inject window variables into index.html
@@ -132,6 +198,8 @@ func NewCopServer(c *config.Config, staticFs fs.FS) *CopServer {
 		GrpcServer: createGrpcServer(tdfServer),
 		// database connection
 		DBConn: dbPool,
+		// dataStore is the interface for all database operations, implemented by either PgDataStore or TrinoDataStore depending on config
+		DBStore: dataStore,
 		// active clients
 		ActiveClients: clients,
 		// sdk client
@@ -188,7 +256,9 @@ func (s *CopServer) Start() {
 func (s *CopServer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	s.DBConn.Close()
+	if s.DBConn != nil {
+		s.DBConn.Close()
+	}
 	s.StaticServer.Shutdown(ctx)
 	s.GrpcServer.Shutdown(ctx)
 }

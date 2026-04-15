@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useContext } from 'react';
+import { useState, useCallback, useEffect, useMemo, useContext, useRef } from 'react';
 import { useRpcClient } from '@/hooks/useRpcClient';
 import { BannerContext } from '@/contexts/BannerContext';
 import { TimestampSelector } from '@/proto/tdf_object/v1/tdf_object_pb';
@@ -8,11 +8,12 @@ import { VehicleData } from '@/types/vehicle';
 import dayjs from 'dayjs';
 
 const VEHICLE_SRC_TYPE_ID = 'vehicles';
-const POLL_INTERVAL_MS = 1000;
+const POLL_INTERVAL_MS = 30_000; // Trino queries take 10-24s in planning alone; 5s caused pileup
 
 export function useVehicleData() {
   const { getSrcType, queryTdfObjectsLight } = useRpcClient();
   const { activeEntitlements } = useContext(BannerContext);
+  const fetchingRef = useRef(false);
 
   const [vehicleData, setVehicleData] = useState<VehicleData[]>([]);
   const [vehicleSrcType, setVehicleSrcType] = useState<SrcType>();
@@ -31,6 +32,8 @@ export function useVehicleData() {
   }, [vehicleData, activeEntitlements]);
 
   const fetchVehicles = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
       const tsRange = new TimestampSelector();
       tsRange.greaterOrEqualTo = Timestamp.fromDate(dayjs().subtract(24, 'hour').toDate());
@@ -72,6 +75,8 @@ export function useVehicleData() {
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       setVehicleData([]);
+    } finally {
+      fetchingRef.current = false;
     }
   }, [queryTdfObjectsLight]);
 

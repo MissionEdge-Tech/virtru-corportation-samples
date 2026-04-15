@@ -9,7 +9,23 @@
 # Required
 ############################################
 
-# The URL of the database to connect to (e.g. postgres://user:password@host:port/database)
+# Data source plugin selection.
+# Set plugin to "postgres" (default) for a direct PostgreSQL connection,
+# or "trino" to query through the TDF-Trino engine.
+#
+# When plugin is "postgres":  db_url below is required.
+# When plugin is "trino":     data_source.trino.url is required.
+data_source:
+  plugin: postgres  # "postgres" | "trino"
+
+  # Trino settings — only used when plugin is "trino"
+  trino:
+    url: http://localhost:28080      # Trino server URL
+    catalog: tdf_postgresql          # Trino catalog (matches catalog/<name>.properties)
+    schema: public                   # Trino schema
+    user: admin                      # Trino user for authentication
+
+# The URL of the database to connect to — required when data_source.plugin is "postgres".
 # https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 # Pool settings https://pkg.go.dev/github.com/jackc/pgx/v5@v5.5.5/pgxpool#ParseConfig
 db_url: postgres://postgres:changeme@localhost:15432/postgres

@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
-import { 
-  TdfObject, 
-  QueryTdfObjectsRequest, 
-  UpdateTdfObjectRequest, 
+import {
+  TdfObject,
+  QueryTdfObjectsRequest,
+  UpdateTdfObjectRequest,
   UpdateTdfObjectResponse,
   RunPythonScriptRequest,
-  RunPythonScriptResponse 
+  RunPythonScriptResponse
 } from '@/proto/tdf_object/v1/tdf_object_pb';
 import { QueryTdfNotesRequest, TdfNote } from '@/proto/tdf_object/v1/tdf_note_pb';
 import { PartialMessage } from '@bufbuild/protobuf';
@@ -18,11 +18,11 @@ import { config } from '@/config';
 export type TdfObjectResponse = {
   tdfObject: TdfObject;
   decryptedData: any;
-}
+};
 export type TdfNotesResponse = {
   tdfNote: TdfNote;
   decryptedData: any;
-}
+};
 
 // Web Worker Pool logic remains outside the hook to persist across renders
 const WORKER_POOL_SIZE = 4;
@@ -70,6 +70,13 @@ async function initializeWorkers(user: ReturnType<typeof useAuth>['user']) {
 
 const tdfObjectCache = new Map<string, any>();
 
+// Cache + in-flight dedupe for source types to reduce backend pressure
+const SRC_TYPES_TTL_MS = 60_000;
+let srcTypesCache:
+  | { data: { srcTypes: string[] }; expiresAt: number; token: string }
+  | null = null;
+let srcTypesInFlight: Promise<{ srcTypes: string[] }> | null = null;
+
 export function useRpcClient() {
   const { decrypt } = useTDF();
   const { user } = useAuth();
@@ -80,12 +87,12 @@ export function useRpcClient() {
   }
 
   const authHeader = useMemo(() => ({
-    headers: { 'Authorization': user?.accessToken || '' }
+    headers: { Authorization: user?.accessToken || '' }
   }), [user?.accessToken]);
 
   const clearTdfObjectCache = useCallback(() => {
     tdfObjectCache.clear();
-    console.log("TDF Object Cache cleared.");
+    console.log('TDF Object Cache cleared.');
   }, []);
 
   const transformTdfObject = useCallback(async (tdfObject: TdfObject): Promise<TdfObjectResponse> => {
@@ -95,11 +102,11 @@ export function useRpcClient() {
     // This contains live telemetry (Speed, Alt, Heading)
     let dynamicData = {};
     try {
-      if (tdfObject.metadata && tdfObject.metadata !== "null") {
+      if (tdfObject.metadata && tdfObject.metadata !== 'null') {
         dynamicData = JSON.parse(tdfObject.metadata);
       }
     } catch (e) {
-      console.warn("Failed to parse dynamic metadata", e);
+      console.warn('Failed to parse dynamic metadata', e);
     }
 
     // Handle Static/Encrypted Data
@@ -135,7 +142,7 @@ export function useRpcClient() {
               tdfObjectCache.set(objectId, staticData);
             }
           } catch (e) {
-            console.error("JSON parse failed on worker result:", e);
+            console.error('JSON parse failed on worker result:', e);
           }
         }
 
@@ -170,7 +177,7 @@ export function useRpcClient() {
       }
     } catch (err) {
       console.error('Error decrypting data:', err);
-      return null; // Return null if decryption fails
+      return null;
     }
   }, [decrypt]);
 
@@ -195,6 +202,36 @@ export function useRpcClient() {
     return noteResponses.filter((res): res is TdfNotesResponse => res !== null);
   }, [authHeader, transformNoteObject]);
 
+  const listSrcTypes = useCallback(async (_req: any = {}): Promise<{ srcTypes: string[] }> => {
+    const token = user?.accessToken || '';
+    const now = Date.now();
+
+    if (srcTypesCache && srcTypesCache.token === token && now < srcTypesCache.expiresAt) {
+      return srcTypesCache.data;
+    }
+
+    if (srcTypesInFlight) {
+      return srcTypesInFlight;
+    }
+
+    srcTypesInFlight = crpcClient
+      .listSrcTypes({}, authHeader)
+      .then((res: any) => {
+        const data = { srcTypes: res?.srcTypes ?? [] };
+        srcTypesCache = {
+          data,
+          token,
+          expiresAt: Date.now() + SRC_TYPES_TTL_MS,
+        };
+        return data;
+      })
+      .finally(() => {
+        srcTypesInFlight = null;
+      });
+
+    return srcTypesInFlight;
+  }, [authHeader, user?.accessToken]);
+
   // Memoize the return object so the object reference itself is stable
   return useMemo(() => ({
     queryNotes,
@@ -206,17 +243,18 @@ export function useRpcClient() {
     createTdfObject: (req: any) => crpcClient.createTdfObject(req, authHeader),
     clearTdfObjectCache,
     getSrcType: (req: any) => crpcClient.getSrcType(req, authHeader),
-    listSrcTypes: (req: any) => crpcClient.listSrcTypes(req, authHeader),
+    listSrcTypes,
     streamTdfObjects: (req: any) => crpcClient.streamTdfObjects(req, authHeader),
-    runPythonScript: (req: PartialMessage<RunPythonScriptRequest>): Promise<RunPythonScriptResponse> => 
+    runPythonScript: (req: PartialMessage<RunPythonScriptRequest>): Promise<RunPythonScriptResponse> =>
       crpcClient.runPythonScript(req, authHeader),
   }), [
-    queryNotes, 
-    updateTdfObject, 
-    queryTdfObjects, 
-    queryTdfObjectsLight, 
-    transformTdfObject, 
-    clearTdfObjectCache, 
-    authHeader
+    queryNotes,
+    updateTdfObject,
+    queryTdfObjects,
+    queryTdfObjectsLight,
+    transformTdfObject,
+    clearTdfObjectCache,
+    authHeader,
+    listSrcTypes
   ]);
 }

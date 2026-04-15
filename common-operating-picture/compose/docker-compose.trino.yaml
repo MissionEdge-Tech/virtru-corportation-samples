@@ -14,13 +14,23 @@ services:
     #   postgres-db:
     #     condition: service_healthy
     #     restart: true
+    environment:
+      JAVA_TOOL_OPTIONS: "-Djavax.net.ssl.trustStore=/etc/trino/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
     extra_hosts:
       local-dsp.virtru.com: "host-gateway"
     ports:
       - "28080:8080"
+      - "28443:8443"
     volumes:
       - ./trino-config/catalog:/etc/trino/catalog
       - ./trino-config/certs:/etc/trino/certs
+      - ./trino-config/config.properties:/etc/trino/config.properties
+      - ./trino-config/header-authenticator.properties:/etc/trino/header-authenticator.properties
+      # Patched JARs: fix for NPE in TDFAccessControl.shouldApplyFilter when
+      # QueryCreatedEvent.getContext() throws/returns null in Trino 476.
+      # Adds try-catch around getContext() + null check on returned QueryContext.
+      - ./trino-config/patched-jars/tdf-trino-476.jar:/usr/lib/trino/plugin/tdf-trino/tdf-trino-476.jar
+      - ./trino-config/patched-jars/virtru.trino_tdf-trino-476.jar:/usr/lib/trino/plugin/tdf-trino/virtru.trino_tdf-trino-476.jar
     # networks:
     #   - trino-network
 

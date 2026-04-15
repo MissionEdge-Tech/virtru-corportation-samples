@@ -23,17 +23,23 @@ export function SourceTypeSelector({ value, onChange }: Props) {
   const { listSrcTypes } = useRpcClient();
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchTypes = async () => {
       try {
         const { srcTypes } = await listSrcTypes({});
-        setTypeList(srcTypes);
+        if (!cancelled) setTypeList(srcTypes);
       } catch (err) {
         console.error(err);
       }
     };
 
     fetchTypes();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [listSrcTypes]);
 
   return (
     <>
