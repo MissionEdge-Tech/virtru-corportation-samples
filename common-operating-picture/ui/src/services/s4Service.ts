@@ -1,5 +1,6 @@
 import { STSClient, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S4_TAG_SCHEMA, type TagSchemaKeys } from './tagSchema';
 
 // S4 Configuration
 const S4_ENDPOINT = import.meta.env.VITE_S4_ENDPOINT || 'http://localhost:7070';
@@ -263,11 +264,10 @@ export async function fetchManifestFromS4(
       })
       .map(([, v]) => v);
 
-    const s4Tags: ManifestS4Tags = {
-      classification: attrValues.filter(v => v.includes('/attr/classification/')),
-      relTo: attrValues.filter(v => v.includes('/attr/relto/')),
-      ntk: attrValues.filter(v => v.includes('/attr/needtoknow/')),
-    };
+    const s4Tags = Object.entries(S4_TAG_SCHEMA).reduce((acc, [key, prefix]) => {
+      acc[key as TagSchemaKeys] = attrValues.filter(v => v.includes(prefix));
+      return acc;
+    }, {} as Record<TagSchemaKeys, string[]>);
 
     return { manifest, s4Tags };
   } catch (err: any) {
